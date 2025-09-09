@@ -9,7 +9,8 @@
 
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { secureKeyHandler } from "@/lib/secure-key-handler";
 import {
   getStellarErrorMessage,
@@ -30,15 +31,128 @@ import {
   FileCheck,
 } from "lucide-react";
 
+// Performance optimizations
+import { useAdvancedMemo, useAdvancedCallback } from "@/hooks/use-memoization";
+import { measureRenderTime } from "@/lib/performance/optimizations";
+
+// Lazy load heavy components
+const LoadingButtonContent = dynamic(
+  () => import("../ui/loading-states").then(mod => ({ default: mod.LoadingButtonContent })),
+  { loading: () => <span>Loading...</span> }
+);
+
+const LoadingProgress = dynamic(
+  () => import("../ui/loading-states").then(mod => ({ default: mod.LoadingProgress })),
+  { loading: () => null }
+);
+
+const TimeoutNotice = dynamic(
+  () => import("../ui/loading-states").then(mod => ({ default: mod.TimeoutNotice })),
+  { loading: () => null }
+);
+
 // New: Reusable loading state + UI primitives
 import { useLoadingState } from "../../hooks/use-loading-state";
-import {
-  LoadingButtonContent,
-  LoadingProgress,
-  TimeoutNotice,
-} from "../ui/loading-states";
 
-export function SignMessageTab() {
+// Memoized sub-components for better performance
+const MemoizedErrorDisplay = memo(({ error, errorSuggestions }: {
+  error: string | null;
+  errorSuggestions: string[];
+}) => {
+  if (!error) return null;
+  
+  return (
+    <div className="space-y-3 rounded border border-red-700 bg-red-900/30 p-4 text-red-200">
+      <div className="flex items-start text-sm">
+        <AlertTriangle
+          size={16}
+          className="mr-2 mt-0.5 flex-shrink-0"
+        />
+        <div className="flex-1">
+          <p className="mb-2 font-medium">{error}</p>
+          {errorSuggestions.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-medium text-red-300">
+                Suggested solutions:
+              </p>
+              <ul className="space-y-1 text-xs text-red-300">
+                {errorSuggestions.map((suggestion, index) => (
+                  <li key={index} className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>{suggestion}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+MemoizedErrorDisplay.displayName = 'MemoizedErrorDisplay';
+
+const MemoizedSuccessBanner = memo(({ signedSuccessfully, signature }: {
+  signedSuccessfully: boolean;
+  signature: string;
+}) => {
+  if (!signedSuccessfully || !signature) return null;
+  
+  return (
+    <div
+      className="flex items-center rounded bg-green-900/30 p-3 text-sm text-green-200 ring-1 ring-inset ring-green-700 transition-all"
+      role="status"
+      aria-live="polite"
+    >
+      <CheckCircle2 size={16} className="mr-2 animate-pop" />
+      {"Message signed successfully! Your signature is ready to use."}
+    </div>
+  );
+});
+MemoizedSuccessBanner.displayName = 'MemoizedSuccessBanner';
+
+const MemoizedFeatureCards = memo(() => (
+  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+    <div className="rounded-lg border border-gray-800 bg-gray-800/30 p-4 shadow-lg backdrop-blur-sm">
+      <div className="mb-2 flex items-center">
+        <ShieldCheck size={18} className="mr-2 text-purple-400" />
+        <h3 className="font-medium text-gray-200">Security First</h3>
+      </div>
+      <p className="text-sm text-gray-400">
+        All cryptographic operations are performed locally in your browser.
+        Your private keys never leave your device.
+      </p>
+    </div>
+    <div className="rounded-lg border border-gray-800 bg-gray-800/30 p-4 shadow-lg backdrop-blur-sm">
+      <div className="mb-2 flex items-center">
+        <CheckCircle size={18} className="mr-2 text-purple-400" />
+        <h3 className="font-medium text-gray-200">Blockchain Compatible</h3>
+      </div>
+      <p className="text-sm text-gray-400">
+        Our tools are compatible with major blockchain standards including
+        Ethereum, Bitcoin, and Stellar.
+      </p>
+    </div>
+    <div className="rounded-lg border border-gray-800 bg-gray-800/30 p-4 shadow-lg backdrop-blur-sm">
+      <div className="mb-2 flex items-center">
+        <FileCheck size={18} className="mr-2 text-purple-400" />
+        <h3 className="font-medium text-gray-200">Verify Anything</h3>
+      </div>
+      <p className="text-sm text-gray-400">
+        From simple messages to complex transactions, verify signatures and
+        prove ownership of blockchain assets.
+      </p>
+    </div>
+  </div>
+));
+MemoizedFeatureCards.displayName = 'MemoizedFeatureCards';
+
+export const SignMessageTab = memo(function SignMessageTab() {
+  // Track render performance
+  useEffect(() => {
+    measureRenderTime('SignMessageTab', () => {});
+  }, []);
+
   // Form state
   const [message, setMessage] = useState("");
   const [privateKey, setPrivateKey] = useState("");
@@ -62,15 +176,20 @@ export function SignMessageTab() {
   // New: loading lifecycle with timeout + retry, tuned for wallet interactions
   const loading = useLoadingState(12000);
 
+  // Memoized validation to prevent unnecessary recalculations
+  const memoizedValidation = useAdvancedMemo(
+    () => {
+      if (!privateKey.trim()) return null;
+      return validateStellarSecretKey(privateKey);
+    },
+    [privateKey],
+    { maxAge: 1000 } // Cache for 1 second
+  );
+
   // Validate the private key as the user types (or when set programmatically).
   useEffect(() => {
-    if (privateKey.trim()) {
-      const validation = validateStellarSecretKey(privateKey);
-      setPrivateKeyValidation(validation);
-    } else {
-      setPrivateKeyValidation(null);
-    }
-  }, [privateKey]);
+    setPrivateKeyValidation(memoizedValidation);
+  }, [memoizedValidation]);
 
   /**
    * Main sign flow:
@@ -174,7 +293,7 @@ export function SignMessageTab() {
   };
 
   /** Copy the signature to clipboard with error handling and transient success state. */
-  const handleCopySignature = async () => {
+  const handleCopySignature = useAdvancedCallback(async () => {
     if (!signature) return;
     try {
       await navigator.clipboard.writeText(signature);
@@ -193,7 +312,7 @@ export function SignMessageTab() {
       setError(stellarErrorMessage);
       setErrorSuggestions(suggestions);
     }
-  };
+  }, [signature], { maxAge: 500 }); // Cache callback for 500ms
 
   const isPending = loading.phase === "pending";
 
@@ -272,46 +391,10 @@ export function SignMessageTab() {
           </div>
 
           {/* Error block with suggestions */}
-          {error && (
-            <div className="space-y-3 rounded border border-red-700 bg-red-900/30 p-4 text-red-200">
-              <div className="flex items-start text-sm">
-                <AlertTriangle
-                  size={16}
-                  className="mr-2 mt-0.5 flex-shrink-0"
-                />
-                <div className="flex-1">
-                  <p className="mb-2 font-medium">{error}</p>
-                  {errorSuggestions.length > 0 && (
-                    <div>
-                      <p className="mb-2 text-xs font-medium text-red-300">
-                        Suggested solutions:
-                      </p>
-                      <ul className="space-y-1 text-xs text-red-300">
-                        {errorSuggestions.map((suggestion, index) => (
-                          <li key={index} className="flex items-start">
-                            <span className="mr-2">•</span>
-                            <span>{suggestion}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          <MemoizedErrorDisplay error={error} errorSuggestions={errorSuggestions} />
 
           {/* Success banner with subtle animation */}
-          {signedSuccessfully && signature && (
-            <div
-              className="flex items-center rounded bg-green-900/30 p-3 text-sm text-green-200 ring-1 ring-inset ring-green-700 transition-all"
-              role="status"
-              aria-live="polite"
-            >
-              <CheckCircle2 size={16} className="mr-2 animate-pop" />
-              {"Message signed successfully! Your signature is ready to use."}
-            </div>
-          )}
+          <MemoizedSuccessBanner signedSuccessfully={signedSuccessfully} signature={signature} />
 
           {/* Primary actions */}
           <div className="flex gap-3 pt-2">
@@ -402,38 +485,7 @@ export function SignMessageTab() {
       </div>
 
       {/* Informational feature cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-lg border border-gray-800 bg-gray-800/30 p-4 shadow-lg backdrop-blur-sm">
-          <div className="mb-2 flex items-center">
-            <ShieldCheck size={18} className="mr-2 text-purple-400" />
-            <h3 className="font-medium text-gray-200">Security First</h3>
-          </div>
-          <p className="text-sm text-gray-400">
-            All cryptographic operations are performed locally in your browser.
-            Your private keys never leave your device.
-          </p>
-        </div>
-        <div className="rounded-lg border border-gray-800 bg-gray-800/30 p-4 shadow-lg backdrop-blur-sm">
-          <div className="mb-2 flex items-center">
-            <CheckCircle size={18} className="mr-2 text-purple-400" />
-            <h3 className="font-medium text-gray-200">Blockchain Compatible</h3>
-          </div>
-          <p className="text-sm text-gray-400">
-            Our tools are compatible with major blockchain standards including
-            Ethereum, Bitcoin, and Stellar.
-          </p>
-        </div>
-        <div className="rounded-lg border border-gray-800 bg-gray-800/30 p-4 shadow-lg backdrop-blur-sm">
-          <div className="mb-2 flex items-center">
-            <FileCheck size={18} className="mr-2 text-purple-400" />
-            <h3 className="font-medium text-gray-200">Verify Anything</h3>
-          </div>
-          <p className="text-sm text-gray-400">
-            From simple messages to complex transactions, verify signatures and
-            prove ownership of blockchain assets.
-          </p>
-        </div>
-      </div>
+      <MemoizedFeatureCards />
     </div>
   );
-}
+});

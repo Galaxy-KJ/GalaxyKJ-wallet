@@ -9,15 +9,39 @@ import { registerServiceWorker } from "@/lib/register-sw";
 import { AnalyticsProvider } from "@/components/ui/analytics-provider";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { PrivacyConsentBanner } from "@/components/ui/privacy-consent";
+import { Suspense, useEffect } from "react";
+import dynamic from "next/dynamic";
+import { initializeOptimizations } from "@/lib/performance/optimizations";
+
+// Lazy load non-critical components
+const LazyPrivacyConsentBanner = dynamic(
+  () => import("@/components/ui/privacy-consent").then(mod => ({ default: mod.PrivacyConsentBanner })),
+  {
+    loading: () => null,
+    ssr: false,
+  }
+);
+
+const LazyOfflineStatusToast = dynamic(
+  () => import("@/components/ui/offline-indicator").then(mod => ({ default: mod.OfflineStatusToast })),
+  {
+    loading: () => null,
+    ssr: false,
+  }
+);
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap", // Optimize font loading
+  preload: true,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap", // Optimize font loading
+  preload: false, // Lazy load mono font
 });
 
 export const metadata: Metadata = {
@@ -28,18 +52,56 @@ export const metadata: Metadata = {
   },
 };
 
+// Performance optimized client component
+function ClientOptimizations() {
+  useEffect(() => {
+    // Initialize performance optimizations
+    const initOptimizations = async () => {
+      try {
+        await initializeOptimizations({
+          enablePerformanceMonitoring: true,
+          enableCodeSplitting: true,
+          enableLazyLoading: true,
+          enableImageOptimization: true,
+          maxBundleSize: 250, // 250KB
+        });
+      } catch (error) {
+        console.warn('Failed to initialize performance optimizations:', error);
+      }
+    };
+
+    initOptimizations();
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      registerServiceWorker();
+    }
+  }, []);
+
+  return null;
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Registrar service worker en el cliente
-  if (typeof window !== 'undefined') {
-    registerServiceWorker();
-  }
-
   return (
     <html lang="en">
+      <head>
+        {/* Preload critical resources */}
+        <link
+          rel="preload"
+          href="/galaxy-smart-wallet-logo.svg"
+          as="image"
+          type="image/svg+xml"
+        />
+        {/* DNS prefetch for external resources */}
+        <link rel="dns-prefetch" href="https://api.stellar.org" />
+        <link rel="dns-prefetch" href="https://horizon.stellar.org" />
+        {/* Preconnect to critical origins */}
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased relative bg-[#0A0B1E] text-white`}
         suppressHydrationWarning={true}
@@ -48,10 +110,25 @@ export default function RootLayout({
           <SecureKeyProvider>
             <AnalyticsProvider>
               <LanguageProvider>
-                <StarBackground />
-                <main className="relative z-10">{children}</main>
-                <OfflineStatusToast />
-                <PrivacyConsentBanner />
+                <Suspense fallback={<div className="fixed inset-0 bg-[#0A0B1E]" />}>
+                  <StarBackground />
+                </Suspense>
+                <main className="relative z-10 min-h-screen">
+                  <Suspense fallback={
+                    <div className="flex items-center justify-center min-h-screen">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                    </div>
+                  }>
+                    {children}
+                  </Suspense>
+                </main>
+                <Suspense fallback={null}>
+                  <LazyOfflineStatusToast />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <LazyPrivacyConsentBanner />
+                </Suspense>
+                <ClientOptimizations />
               </LanguageProvider>
             </AnalyticsProvider>
           </SecureKeyProvider>
