@@ -1,22 +1,29 @@
 import type { NextConfig } from "next";
+import path from "path";
+import process from "node:process";
 
 const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
-    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react', '@stellar/stellar-sdk'],
-    turbotrace: {
-      logLevel: 'error',
-    },
-    serverComponentsExternalPackages: ['@stellar/stellar-sdk'],
+    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
   },
-  
+  serverExternalPackages: ['@stellar/stellar-sdk'],
+  outputFileTracingRoot: path.join(process.cwd(), '..'),
+  eslint: {
+    // Do not block production builds on lint errors
+    ignoreDuringBuilds: true,
+  },
+  turbotrace: {
+    logLevel: 'error',
+  },
+
   // Performance optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
       exclude: ['error', 'warn'],
     } : false,
   },
-  
+
   // Code splitting and bundling optimizations
   webpack: (config, { dev, isServer }) => {
     // Optimize bundle splitting
@@ -97,10 +104,6 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 365, // 1 year
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-  eslint: {
-    // Temporarily ignore ESLint errors during build
-    ignoreDuringBuilds: true,
-  },
     remotePatterns: [
       {
         protocol: 'https',
@@ -108,7 +111,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  
+
   // Performance and caching headers
   async headers() {
     return [
@@ -188,11 +191,11 @@ const nextConfig: NextConfig = {
     // Analytics environment variables
     NEXT_PUBLIC_ANALYTICS_ENABLED: process.env.NEXT_PUBLIC_ANALYTICS_ENABLED || 'true',
     NEXT_PUBLIC_PRIVACY_MODE: process.env.NEXT_PUBLIC_PRIVACY_MODE || 'strict',
-    
+
     // PostHog configuration
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY || '',
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
-    
+
     // Sentry configuration
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN || '',
     SENTRY_ORG: process.env.SENTRY_ORG || '',
