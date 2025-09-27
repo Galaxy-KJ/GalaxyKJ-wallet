@@ -8,13 +8,13 @@
 "use client";
 
 import { useEffect, useState, memo } from 'react';
-import { PerformanceMonitor, BundleOptimizer } from '@/lib/performance/optimizations';
+import { PerformanceMonitor } from '@/lib/performance/optimizations';
 import { GalaxyBundleAnalyzer, formatBundleSize, getBundleHealthScore } from '@/lib/performance/bundle-analyzer';
-import type { BundleAnalysisReport, PerformanceMetrics } from '@/lib/performance/bundle-analyzer';
+import type { BundleAnalysisReport } from '@/lib/performance/bundle-analyzer';
+import type { PerformanceMetrics as PerfMetrics } from '@/lib/performance/optimizations';
 import { 
   Activity, 
   AlertTriangle, 
-  CheckCircle, 
   Clock, 
   Package,
   Zap,
@@ -31,7 +31,7 @@ interface PerformanceMonitorProps {
 }
 
 interface MetricsDisplayProps {
-  metrics: Record<string, PerformanceMetrics>;
+  metrics: Record<string, PerfMetrics>;
   bundleReport?: BundleAnalysisReport;
 }
 
@@ -48,7 +48,7 @@ const MetricsCard = memo(({
   unit: string;
   trend?: 'up' | 'down' | 'stable';
   status?: 'good' | 'warning' | 'critical';
-  icon: any;
+  icon: React.ComponentType<{ size?: number }>;
 }) => {
   const statusColors = {
     good: 'text-green-400 bg-green-900/20 border-green-700',
@@ -164,12 +164,12 @@ const OptimizationRecommendations = memo(({ report }: { report?: BundleAnalysisR
 });
 OptimizationRecommendations.displayName = 'OptimizationRecommendations';
 
-const MetricsDisplay = memo(({ metrics, bundleReport }: MetricsDisplayProps) => {
+const MetricsDisplay = memo(({ metrics }: MetricsDisplayProps) => {
   // Calculate aggregate metrics
   const totalRenderTime = Object.values(metrics).reduce((sum, m) => sum + m.renderTime, 0);
   const totalLoadTime = Object.values(metrics).reduce((sum, m) => sum + m.loadTime, 0);
   const avgMemoryUsage = Object.values(metrics).reduce((sum, m) => sum + m.memoryUsage, 0) / Object.keys(metrics).length || 0;
-  const avgCacheHitRate = Object.values(metrics).reduce((sum, m) => sum + m.cacheHitRatio, 0) / Object.keys(metrics).length || 0;
+  const avgCacheHitRate = Object.values(metrics).reduce((sum, m) => sum + m.cacheHitRate, 0) / Object.keys(metrics).length || 0;
 
   return (
     <div className="grid grid-cols-2 gap-2 mb-4">
@@ -211,7 +211,7 @@ export const PerformanceMonitorUI = memo(function PerformanceMonitorUI({
   onClose,
   position = 'bottom-right'
 }: PerformanceMonitorProps) {
-  const [metrics, setMetrics] = useState<Record<string, PerformanceMetrics>>({});
+  const [metrics, setMetrics] = useState<Record<string, PerfMetrics>>({});
   const [bundleReport, setBundleReport] = useState<BundleAnalysisReport>();
   const [isMinimized, setIsMinimized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -344,7 +344,7 @@ export const PerformanceMonitorUI = memo(function PerformanceMonitorUI({
 // Hook for easy integration
 export function usePerformanceMonitor() {
   const [isVisible, setIsVisible] = useState(false);
-  const [metrics, setMetrics] = useState<Record<string, PerformanceMetrics>>({});
+  const [metrics, setMetrics] = useState<Record<string, PerfMetrics>>({});
 
   useEffect(() => {
     const monitor = PerformanceMonitor.getInstance();

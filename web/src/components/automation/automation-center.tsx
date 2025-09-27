@@ -24,6 +24,8 @@ import { StarBackground } from "@/components/effects/star-background";
 import { NewAutomationForm } from "@/components/automation/new-automation-form";
 import { FinancialImpactChart } from "@/components/automation/financial-impact-chart";
 import type { Automation } from "@/types/automation";
+import { useAutomationExecution } from "@/hooks/use-automation-execution";
+import { AutomationCreateForm } from "@/components/automation/automation-create-form";
 
 const automationData: Automation[] = [
   {
@@ -100,6 +102,7 @@ const automationData: Automation[] = [
 export function AutomationCenter() {
   const router = useRouter();
   const [showNewForm, setShowNewForm] = useState(false);
+  const [showNewSupabase, setShowNewSupabase] = useState(false);
   const [expandedAutomation, setExpandedAutomation] = useState<string | null>(
     null
   );
@@ -107,6 +110,17 @@ export function AutomationCenter() {
   const [editingAutomation, setEditingAutomation] = useState<Automation | null>(
     null
   );
+
+  // Live Supabase-backed data and actions
+  const {
+    automations: sbAutomations,
+    loading: sbLoading,
+    error: sbError,
+    toggleActive: sbToggle,
+    remove: sbRemove,
+    manualExecute: sbManualExecute,
+    refresh: sbRefresh,
+  } = useAutomationExecution();
 
   const toggleAutomation = (id: string) => {
     setAutomations(
@@ -221,6 +235,14 @@ export function AutomationCenter() {
             <Plus className="mr-2 h-4 w-4" />
             New Automation
           </Button>
+          <Button
+            variant="outline"
+            className="border-gray-700 bg-gray-800/50 hover:bg-gray-800 text-gray-300"
+            onClick={() => setShowNewSupabase(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Payment
+          </Button>
         </header>
 
         <AnimatePresence>
@@ -251,6 +273,37 @@ export function AutomationCenter() {
                     onSubmit={handleCreateAutomation}
                     onCancel={() => setShowNewForm(false)}
                   />
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showNewSupabase && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="mb-8"
+            >
+              <Card className="border-gray-800 bg-gradient-to-br from-gray-900/90 to-gray-950/90 backdrop-blur-sm overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-medium text-gray-300 flex items-center justify-between">
+                    <span>Create Payment Automation</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full text-gray-400 hover:text-white hover:bg-gray-800/50"
+                      onClick={() => setShowNewSupabase(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AutomationCreateForm onClose={() => { setShowNewSupabase(false); sbRefresh(); }} />
                 </CardContent>
               </Card>
             </motion.div>
@@ -295,6 +348,69 @@ export function AutomationCenter() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
+            {/* Live Supabase-backed automations */}
+            <Card className="border-gray-800 bg-gradient-to-br from-gray-900/90 to-gray-950/90 backdrop-blur-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-medium text-gray-300">
+                  Your Automations
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                {sbError && (
+                  <div className="text-sm text-red-400 mb-3">{sbError}</div>
+                )}
+                {sbLoading ? (
+                  <div className="text-sm text-gray-400">Loading…</div>
+                ) : sbAutomations.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400">No automations yet.</p>
+                    <Button
+                      variant="link"
+                      className="text-purple-400 mt-2"
+                      onClick={() => setShowNewSupabase(true)}
+                    >
+                      Create one
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {sbAutomations.map((a) => (
+                      <div key={a.id} className="flex items-center justify-between p-3 rounded-md bg-gray-900/40 border border-gray-800">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center">
+                            {a.type === 'payment' ? (
+                              <Clock className="h-4 w-4 text-blue-400" />
+                            ) : a.type === 'swap' ? (
+                              <RefreshCw className="h-4 w-4 text-purple-400" />
+                            ) : (
+                              <Zap className="h-4 w-4 text-yellow-400" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium">
+                              {a.type === 'payment' ? `Pay ${a.amount} ${a.asset} → ${a.recipient?.slice(0,6)}…` : a.type}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {a.active ? 'active' : 'inactive'} · {a.next_execute_at ? `next ${new Date(a.next_execute_at).toLocaleString()}` : 'unscheduled'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch checked={a.active} onCheckedChange={(v) => sbToggle(a.id, v)} className="data-[state=checked]:bg-purple-600" />
+                          <Button size="sm" variant="outline" className="h-8 border-gray-700 bg-gray-800/50" onClick={() => sbManualExecute(a.id, true)}>
+                            Run
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-8 border-gray-700 bg-gray-800/50" onClick={() => sbRemove(a.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card className="border-gray-800 bg-gradient-to-br from-gray-900/90 to-gray-950/90 backdrop-blur-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-medium text-gray-300">

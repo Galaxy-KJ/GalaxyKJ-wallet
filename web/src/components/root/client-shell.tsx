@@ -52,6 +52,7 @@ export default function ClientShell() {
     <>
       <Suspense fallback={null}>
         <LazyOfflineStatusToast />
+        <LazyPrivacyConsentBanner />
       </Suspense>
       <ClientOptimizations />
     </>
