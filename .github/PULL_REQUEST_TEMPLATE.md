@@ -1,4 +1,6 @@
-# Pull Request for Galaxy_KJ - Close Issue
+# Pull Request for Galaxy_KJ 
+
+# Close #
 
 ❗ **Pull Request Information**
 
