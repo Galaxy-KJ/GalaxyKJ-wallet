@@ -5,7 +5,7 @@ import process from "node:process";
 const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
-    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
+    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react', '@stellar/stellar-sdk'],
   },
   serverExternalPackages: ['@stellar/stellar-sdk'],
   outputFileTracingRoot: path.join(process.cwd(), '..'),

@@ -141,19 +141,7 @@ export interface PlatformConfig {
   };
 }
 
-/**
- * API response wrapper
- */
-export interface ApiResponse<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-    details?: unknown;
-  };
-  timestamp: string;
-}
+// API response wrapper - using centralized type from @/types/api-responses
 
 /**
  * Encryption metadata

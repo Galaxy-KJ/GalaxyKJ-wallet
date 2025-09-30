@@ -8,6 +8,7 @@ import { AnalyticsProvider } from "@/components/ui/analytics-provider";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Suspense, type ReactNode } from "react";
 import ClientShell from "@/components/root/client-shell";
+import { ClientLayoutComponents } from "@/components/layout/client-layout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -72,7 +73,9 @@ export default function RootLayout({
                     {children}
                   </Suspense>
                 </main>
-                <ClientShell />
+                <Suspense fallback={null}>
+                  <ClientLayoutComponents />
+                </Suspense>
               </LanguageProvider>
             </AnalyticsProvider>
           </SecureKeyProvider>

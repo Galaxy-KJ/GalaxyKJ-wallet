@@ -1,53 +1,48 @@
 /**
  * Performance Testing React Hook
- * 
+ *
  * React hook for integrating performance testing capabilities
  * directly into Galaxy Smart Wallet components.
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { ComponentPerformanceTester, PerformanceTestSuite, PerformanceTestResult } from '@/lib/performance/testing-utils';
-import { PerformanceTestRunner, TestRunSummary } from '@/lib/performance/test-runner';
+import { useEffect, useRef, useState, useCallback } from "react";
+import { ComponentPerformanceTester } from "@/lib/performance/testing-utils";
+import { PerformanceTestRunner } from "@/lib/performance/test-runner";
+import {
+  ComponentPerformanceMetrics,
+  PerformanceMonitoringOptions,
+  TestRunSummary as PerformanceTestRunSummary,
+  PerformanceIssue,
+  PerformanceTrackingOptions,
+  RealTimePerformanceMetrics,
+} from "@/types/performance-metrics";
 
-// Hook options interface
-export interface UsePerformanceTestingOptions {
-  componentName?: string;
-  enableAutoTesting?: boolean;
-  testInterval?: number; // milliseconds
-  thresholds?: {
-    renderTime?: number;
-    memoryUsage?: number;
-  };
-  onTestComplete?: (result: TestRunSummary) => void;
-  onThresholdExceeded?: (metric: string, value: number, threshold: number) => void;
-}
-
-// Performance metrics interface
-export interface ComponentPerformanceMetrics {
-  averageRenderTime: number;
-  maxRenderTime: number;
-  minRenderTime: number;
-  averageMemoryUsage: number;
-  totalRenders: number;
-  lastRenderTime: number;
-  isHealthy: boolean;
-}
+// Hook options interface - now using centralized types
+export type UsePerformanceTestingOptions = PerformanceMonitoringOptions;
 
 /**
  * Hook for component-level performance testing
  */
-export function useComponentPerformanceTesting(options: UsePerformanceTestingOptions = {}) {
+export function useComponentPerformanceTesting(
+  options: UsePerformanceTestingOptions = {},
+) {
   const {
-    componentName = 'UnnamedComponent',
+    componentName = "UnnamedComponent",
     enableAutoTesting = false,
     testInterval = 30000, // 30 seconds
-    thresholds = { renderTime: 16, memoryUsage: 5 * 1024 * 1024 }, // 16ms (60fps), 5MB
-    onTestComplete,
+    thresholds = {
+      rendering: { maxRenderTime: 16 },
+      memory: { maxRenderMemory: 5 * 1024 * 1024 },
+    }, // 16ms (60fps), 5MB
     onThresholdExceeded,
   } = options;
 
-  const testerRef = useRef<ComponentPerformanceTester>();
+  const testerRef = useRef<ComponentPerformanceTester | null>(null);
   const [metrics, setMetrics] = useState<ComponentPerformanceMetrics>({
+    timestamp: Date.now(),
+    duration: 0,
+    score: 0,
+    passed: true,
     averageRenderTime: 0,
     maxRenderTime: 0,
     minRenderTime: 0,
@@ -58,6 +53,58 @@ export function useComponentPerformanceTesting(options: UsePerformanceTestingOpt
   });
 
   const [isTestingEnabled, setIsTestingEnabled] = useState(enableAutoTesting);
+
+  // Update metrics and check thresholds
+  const updateMetrics = useCallback(() => {
+    if (!testerRef.current) return;
+
+    const stats = testerRef.current.getStats();
+    const isHealthy =
+      stats.averageRenderTime <= (thresholds?.rendering?.maxRenderTime || 16) &&
+      stats.averageMemoryUsage <=
+        (thresholds?.memory?.maxRenderMemory || 5 * 1024 * 1024);
+
+    const newMetrics: ComponentPerformanceMetrics = {
+      timestamp: Date.now(),
+      duration: performance.now(),
+      score: isHealthy
+        ? 100
+        : Math.max(0, 100 - (stats.averageRenderTime / 16) * 50),
+      passed: isHealthy,
+      averageRenderTime: stats.averageRenderTime,
+      maxRenderTime: stats.maxRenderTime,
+      minRenderTime: stats.minRenderTime,
+      averageMemoryUsage: stats.averageMemoryUsage,
+      totalRenders: stats.totalRenders,
+      lastRenderTime: stats.averageRenderTime, // Approximation
+      isHealthy,
+    };
+
+    // Check thresholds
+    if (onThresholdExceeded) {
+      if (
+        stats.averageRenderTime > (thresholds?.rendering?.maxRenderTime || 16)
+      ) {
+        onThresholdExceeded(
+          "renderTime",
+          stats.averageRenderTime,
+          thresholds?.rendering?.maxRenderTime || 16,
+        );
+      }
+      if (
+        stats.averageMemoryUsage >
+        (thresholds?.memory?.maxRenderMemory || 5 * 1024 * 1024)
+      ) {
+        onThresholdExceeded(
+          "memoryUsage",
+          stats.averageMemoryUsage,
+          thresholds?.memory?.maxRenderMemory || 5 * 1024 * 1024,
+        );
+      }
+    }
+
+    setMetrics(newMetrics);
+  }, [thresholds, onThresholdExceeded]);
 
   // Initialize tester
   useEffect(() => {
@@ -75,44 +122,14 @@ export function useComponentPerformanceTesting(options: UsePerformanceTestingOpt
     }, testInterval);
 
     return () => clearInterval(interval);
-  }, [isTestingEnabled, testInterval]);
-
-  // Update metrics and check thresholds
-  const updateMetrics = useCallback(() => {
-    if (!testerRef.current) return;
-
-    const stats = testerRef.current.getStats();
-    const newMetrics: ComponentPerformanceMetrics = {
-      averageRenderTime: stats.averageRenderTime,
-      maxRenderTime: stats.maxRenderTime,
-      minRenderTime: stats.minRenderTime,
-      averageMemoryUsage: stats.averageMemoryUsage,
-      totalRenders: stats.totalRenders,
-      lastRenderTime: stats.averageRenderTime, // Approximation
-      isHealthy: 
-        stats.averageRenderTime <= (thresholds.renderTime || 16) &&
-        stats.averageMemoryUsage <= (thresholds.memoryUsage || 5 * 1024 * 1024),
-    };
-
-    // Check thresholds
-    if (onThresholdExceeded) {
-      if (stats.averageRenderTime > (thresholds.renderTime || 16)) {
-        onThresholdExceeded('renderTime', stats.averageRenderTime, thresholds.renderTime || 16);
-      }
-      if (stats.averageMemoryUsage > (thresholds.memoryUsage || 5 * 1024 * 1024)) {
-        onThresholdExceeded('memoryUsage', stats.averageMemoryUsage, thresholds.memoryUsage || 5 * 1024 * 1024);
-      }
-    }
-
-    setMetrics(newMetrics);
-  }, [thresholds, onThresholdExceeded]);
+  }, [isTestingEnabled, testInterval, updateMetrics]);
 
   // Measure a single render
   const measureRender = useCallback(() => {
     if (!testerRef.current) return () => {};
-    
+
     const stopMeasurement = testerRef.current.startMeasurement(componentName);
-    
+
     return () => {
       stopMeasurement();
       updateMetrics();
@@ -124,6 +141,10 @@ export function useComponentPerformanceTesting(options: UsePerformanceTestingOpt
     if (testerRef.current) {
       testerRef.current.reset();
       setMetrics({
+        timestamp: Date.now(),
+        duration: 0,
+        score: 100,
+        passed: true,
         averageRenderTime: 0,
         maxRenderTime: 0,
         minRenderTime: 0,
@@ -136,9 +157,12 @@ export function useComponentPerformanceTesting(options: UsePerformanceTestingOpt
   }, []);
 
   // Toggle testing
-  const toggleTesting = useCallback((enabled?: boolean) => {
-    setIsTestingEnabled(enabled ?? !isTestingEnabled);
-  }, [isTestingEnabled]);
+  const toggleTesting = useCallback(
+    (enabled?: boolean) => {
+      setIsTestingEnabled(enabled ?? !isTestingEnabled);
+    },
+    [isTestingEnabled],
+  );
 
   // Get detailed stats
   const getDetailedStats = useCallback(() => {
@@ -159,12 +183,14 @@ export function useComponentPerformanceTesting(options: UsePerformanceTestingOpt
 /**
  * Hook for full application performance testing
  */
-export function useApplicationPerformanceTesting(options: {
-  autoStart?: boolean;
-  testInterval?: number; // minutes
-  onTestComplete?: (result: TestRunSummary) => void;
-  onTestFailed?: (error: Error) => void;
-} = {}) {
+export function useApplicationPerformanceTesting(
+  options: {
+    autoStart?: boolean;
+    testInterval?: number; // minutes
+    onTestComplete?: (result: PerformanceTestRunSummary) => void;
+    onTestFailed?: (error: Error) => void;
+  } = {},
+) {
   const {
     autoStart = false,
     testInterval = 60, // 60 minutes default
@@ -173,28 +199,20 @@ export function useApplicationPerformanceTesting(options: {
   } = options;
 
   const [isRunning, setIsRunning] = useState(false);
-  const [lastResult, setLastResult] = useState<TestRunSummary | null>(null);
-  const [testHistory, setTestHistory] = useState<TestRunSummary[]>([]);
+  const [lastResult, setLastResult] =
+    useState<PerformanceTestRunSummary | null>(null);
+  const [testHistory, setTestHistory] = useState<PerformanceTestRunSummary[]>(
+    [],
+  );
   const [error, setError] = useState<Error | null>(null);
 
-  const testRunnerRef = useRef<PerformanceTestRunner>();
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const testRunnerRef = useRef<PerformanceTestRunner | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize test runner
   useEffect(() => {
     testRunnerRef.current = new PerformanceTestRunner();
   }, []);
-
-  // Auto-start testing
-  useEffect(() => {
-    if (autoStart) {
-      startTesting();
-    }
-
-    return () => {
-      stopTesting();
-    };
-  }, [autoStart]);
 
   // Run a single performance test
   const runTest = useCallback(async () => {
@@ -205,21 +223,119 @@ export function useApplicationPerformanceTesting(options: {
 
     try {
       const result = await testRunnerRef.current.runTest({
-        outputFormat: 'console',
+        outputFormat: "console",
         saveResults: false,
         includeDetailed: true,
       });
 
-      setLastResult(result);
-      setTestHistory(prev => [...prev.slice(-9), result]); // Keep last 10 results
+      // Convert the result to match our type
+      const convertedResult: PerformanceTestRunSummary = {
+        runId: result.runId,
+        timestamp: result.timestamp,
+        duration: result.duration,
+        overallPassed: result.overallPassed,
+        overallScore: result.overallScore,
+        testResults: {
+          passed: result.testResults.passed,
+          score: result.testResults.score,
+          results: {
+            loading: {
+              passed: result.testResults.results.loading.passed,
+              metrics: {
+                timestamp: Date.now(),
+                duration: 0,
+                score: result.testResults.results.loading.passed ? 100 : 0,
+                passed: result.testResults.results.loading.passed,
+                lcp: result.testResults.results.loading.metrics.lcp,
+                fid: result.testResults.results.loading.metrics.fid,
+                cls: result.testResults.results.loading.metrics.cls,
+                ttfb: result.testResults.results.loading.metrics.ttfb,
+                fcp: result.testResults.results.loading.metrics.fcp,
+              },
+              issues: result.testResults.results.loading.issues,
+            },
+            bundle: {
+              passed: result.testResults.results.bundle.passed,
+              metrics: {
+                timestamp: Date.now(),
+                duration: 0,
+                score: result.testResults.results.bundle.passed ? 100 : 0,
+                passed: result.testResults.results.bundle.passed,
+                totalSize: result.testResults.results.bundle.metrics.totalSize,
+                largestChunkSize:
+                  result.testResults.results.bundle.metrics.largestChunkSize,
+                stellarSdkSize:
+                  result.testResults.results.bundle.metrics.stellarSdkSize,
+                compressionRatio:
+                  result.testResults.results.bundle.metrics.compressionRatio,
+                chunkCount:
+                  result.testResults.results.bundle.metrics.chunkCount,
+              },
+              issues: result.testResults.results.bundle.issues,
+            },
+            memory: {
+              passed: result.testResults.results.memory.passed,
+              metrics: {
+                timestamp: Date.now(),
+                duration: 0,
+                score: result.testResults.results.memory.passed ? 100 : 0,
+                passed: result.testResults.results.memory.passed,
+                currentHeapSize:
+                  result.testResults.results.memory.metrics.currentHeapSize,
+                peakHeapSize:
+                  result.testResults.results.memory.metrics.peakHeapSize,
+                averageRenderMemory:
+                  result.testResults.results.memory.metrics.averageRenderMemory,
+                memoryLeakRate:
+                  result.testResults.results.memory.metrics.memoryLeakRate,
+              },
+              issues: result.testResults.results.memory.issues,
+            },
+            rendering: {
+              passed: result.testResults.results.rendering.passed,
+              metrics: {
+                timestamp: Date.now(),
+                duration: 0,
+                score: result.testResults.results.rendering.passed ? 100 : 0,
+                passed: result.testResults.results.rendering.passed,
+                averageRenderTime:
+                  result.testResults.results.rendering.metrics
+                    .averageRenderTime,
+                maxRenderTime:
+                  result.testResults.results.rendering.metrics
+                    .averageRenderTime,
+                minRenderTime:
+                  result.testResults.results.rendering.metrics
+                    .averageRenderTime,
+                reactUpdateRate:
+                  result.testResults.results.rendering.metrics.reactUpdateRate,
+                cacheHitRate:
+                  result.testResults.results.rendering.metrics.cacheHitRate,
+                memoizationEfficiency:
+                  result.testResults.results.rendering.metrics
+                    .memoizationEfficiency,
+                totalRenders: 0,
+              },
+              issues: result.testResults.results.rendering.issues,
+            },
+          },
+          recommendations: result.testResults.recommendations,
+          timestamp: result.testResults.timestamp,
+        },
+        environment: result.environment,
+      };
+
+      setLastResult(convertedResult);
+      setTestHistory((prev) => [...prev.slice(-9), convertedResult]); // Keep last 10 results
 
       if (onTestComplete) {
-        onTestComplete(result);
+        onTestComplete(convertedResult);
       }
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Performance test failed');
+      const error =
+        err instanceof Error ? err : new Error("Performance test failed");
       setError(error);
-      
+
       if (onTestFailed) {
         onTestFailed(error);
       }
@@ -238,27 +354,41 @@ export function useApplicationPerformanceTesting(options: {
     runTest();
 
     // Set up recurring tests
-    intervalRef.current = setInterval(() => {
-      runTest();
-    }, testInterval * 60 * 1000); // Convert minutes to milliseconds
+    intervalRef.current = setInterval(
+      () => {
+        runTest();
+      },
+      testInterval * 60 * 1000,
+    ); // Convert minutes to milliseconds
   }, [runTest, testInterval]);
 
   // Stop continuous testing
   const stopTesting = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
-      intervalRef.current = undefined;
+      intervalRef.current = null;
     }
   }, []);
+
+  // Auto-start testing
+  useEffect(() => {
+    if (autoStart) {
+      startTesting();
+    }
+
+    return () => {
+      stopTesting();
+    };
+  }, [autoStart, startTesting, stopTesting]);
 
   // Generate benchmark report
   const generateBenchmarkReport = useCallback(async () => {
     if (!testRunnerRef.current) return null;
-    
+
     try {
       return await testRunnerRef.current.generateBenchmarkReport();
     } catch (err) {
-      console.error('Failed to generate benchmark report:', err);
+      console.error("Failed to generate benchmark report:", err);
       return null;
     }
   }, []);
@@ -268,7 +398,7 @@ export function useApplicationPerformanceTesting(options: {
     setTestHistory([]);
     setLastResult(null);
     setError(null);
-    
+
     if (testRunnerRef.current) {
       testRunnerRef.current.clearHistory();
     }
@@ -291,22 +421,17 @@ export function useApplicationPerformanceTesting(options: {
 /**
  * Hook for monitoring specific performance metrics
  */
-export function usePerformanceMetrics(options: {
-  trackRenderTime?: boolean;
-  trackMemoryUsage?: boolean;
-  trackBundleSize?: boolean;
-  trackNetworkRequests?: boolean;
-  sampleRate?: number; // 0-1, percentage of renders to measure
-} = {}) {
+export function usePerformanceMetrics(
+  options: PerformanceTrackingOptions = {},
+) {
   const {
     trackRenderTime = true,
     trackMemoryUsage = true,
-    trackBundleSize = false,
     trackNetworkRequests = false,
     sampleRate = 0.1, // 10% of renders
   } = options;
 
-  const [metrics, setMetrics] = useState({
+  const [metrics, setMetrics] = useState<RealTimePerformanceMetrics>({
     renderTime: 0,
     memoryUsage: 0,
     bundleSize: 0,
@@ -326,9 +451,12 @@ export function usePerformanceMetrics(options: {
 
     return () => {
       const renderTime = performance.now() - startTime;
-      setMetrics(prev => ({
+      setMetrics((prev) => ({
         ...prev,
-        renderTime: prev.renderTime === 0 ? renderTime : (prev.renderTime + renderTime) / 2,
+        renderTime:
+          prev.renderTime === 0
+            ? renderTime
+            : (prev.renderTime + renderTime) / 2,
         timestamp: Date.now(),
       }));
     };
@@ -339,9 +467,11 @@ export function usePerformanceMetrics(options: {
     if (!trackMemoryUsage) return;
 
     const updateMemory = () => {
-      const memoryInfo = (performance as any).memory;
+      const memoryInfo = (
+        performance as Performance & { memory?: { usedJSHeapSize: number } }
+      ).memory;
       if (memoryInfo) {
-        setMetrics(prev => ({
+        setMetrics((prev) => ({
           ...prev,
           memoryUsage: memoryInfo.usedJSHeapSize,
           timestamp: Date.now(),
@@ -364,15 +494,15 @@ export function usePerformanceMetrics(options: {
     const observer = new PerformanceObserver((list) => {
       const entries = list.getEntries();
       requestCount += entries.length;
-      
-      setMetrics(prev => ({
+
+      setMetrics((prev) => ({
         ...prev,
         networkRequests: requestCount,
         timestamp: Date.now(),
       }));
     });
 
-    observer.observe({ entryTypes: ['resource'] });
+    observer.observe({ entryTypes: ["resource"] });
 
     return () => observer.disconnect();
   }, [trackNetworkRequests]);
@@ -386,22 +516,19 @@ export function usePerformanceMetrics(options: {
 /**
  * Convenience hook that combines component and application testing
  */
-export function usePerformanceTesting(options: {
-  componentName?: string;
-  enableComponentTesting?: boolean;
-  enableApplicationTesting?: boolean;
-  componentThresholds?: {
-    renderTime?: number;
-    memoryUsage?: number;
-  };
-  applicationTestInterval?: number; // minutes
-  onPerformanceIssue?: (issue: {
-    type: 'component' | 'application';
-    severity: 'warning' | 'critical';
-    message: string;
-    metrics?: any;
-  }) => void;
-} = {}) {
+export function usePerformanceTesting(
+  options: {
+    componentName?: string;
+    enableComponentTesting?: boolean;
+    enableApplicationTesting?: boolean;
+    componentThresholds?: {
+      renderTime?: number;
+      memoryUsage?: number;
+    };
+    applicationTestInterval?: number; // minutes
+    onPerformanceIssue?: (issue: PerformanceIssue) => void;
+  } = {},
+) {
   const {
     componentName,
     enableComponentTesting = true,
@@ -411,16 +538,32 @@ export function usePerformanceTesting(options: {
     onPerformanceIssue,
   } = options;
 
+  // Convert componentThresholds to the expected format
+  const convertedThresholds = componentThresholds
+    ? {
+        rendering: { 
+          maxRenderTime: componentThresholds.renderTime || 16,
+          maxReactUpdates: 60, // Default value
+          minCacheHitRate: 0.8 // Default value
+        },
+        memory: {
+          maxHeapSize: 50 * 1024 * 1024, // 50MB default
+          maxRenderMemory: componentThresholds.memoryUsage || 5 * 1024 * 1024,
+          maxLeakRate: 1024 * 1024, // 1MB per second default
+        },
+      }
+    : undefined;
+
   // Component-level testing
   const componentTesting = useComponentPerformanceTesting({
     componentName,
     enableAutoTesting: enableComponentTesting,
-    thresholds: componentThresholds,
+    thresholds: convertedThresholds,
     onThresholdExceeded: (metric, value, threshold) => {
       if (onPerformanceIssue) {
         onPerformanceIssue({
-          type: 'component',
-          severity: value > threshold * 2 ? 'critical' : 'warning',
+          type: "component",
+          severity: value > threshold * 2 ? "critical" : "warning",
           message: `${metric} (${value.toFixed(2)}) exceeds threshold (${threshold})`,
           metrics: { metric, value, threshold },
         });
@@ -435,8 +578,8 @@ export function usePerformanceTesting(options: {
     onTestComplete: (result) => {
       if (!result.overallPassed && onPerformanceIssue) {
         onPerformanceIssue({
-          type: 'application',
-          severity: result.overallScore < 50 ? 'critical' : 'warning',
+          type: "application",
+          severity: result.overallScore < 50 ? "critical" : "warning",
           message: `Performance test failed with score ${result.overallScore}/100`,
           metrics: result.testResults.results,
         });
@@ -445,8 +588,8 @@ export function usePerformanceTesting(options: {
     onTestFailed: (error) => {
       if (onPerformanceIssue) {
         onPerformanceIssue({
-          type: 'application',
-          severity: 'critical',
+          type: "application",
+          severity: "critical",
           message: `Performance test failed: ${error.message}`,
         });
       }
