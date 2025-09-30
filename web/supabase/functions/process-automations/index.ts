@@ -21,6 +21,44 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+// Helpers
+type NativeBalance = { asset_type: 'native'; balance: string }
+type CreditBalance = { asset_type: string; asset_code: string; asset_issuer: string; balance: string }
+type AccountLike = { balances: Array<NativeBalance | CreditBalance> }
+const isCreditBalance = (b: AccountLike['balances'][number]): b is CreditBalance => (
+  'asset_code' in b && 'asset_issuer' in b
+)
+function parseAssetStrict(value: string | null): Asset {
+  if (!value) throw new Error('Asset missing')
+  const v = String(value)
+  if (v === 'XLM' || v === 'native') return Asset.native()
+  const [code, issuer] = v.split(':')
+  if (!code || !issuer) throw new Error(`Non-native asset must be CODE:ISSUER, got ${v}`)
+  return new Asset(code, issuer)
+}
+
+function hasTrustline(account: AccountLike, asset: Asset): boolean {
+  if (asset.isNative()) return true
+  const code = asset.getCode()
+  const issuer = asset.getIssuer()
+  return account.balances.some((b) => isCreditBalance(b) && b.asset_code === code && b.asset_issuer === issuer)
+}
+
+function getBalance(account: AccountLike, asset: Asset): number {
+  if (asset.isNative()) {
+    const b = account.balances.find((x) => x.asset_type === 'native')
+    return b ? Number(b.balance) : 0
+  }
+  const code = asset.getCode()
+  const issuer = asset.getIssuer()
+  const b = account.balances.find((x) => isCreditBalance(x) && x.asset_code === code && x.asset_issuer === issuer)
+  return b ? Number(b.balance) : 0
+}
+
+function toFixed7(n: number): string {
+  return (Math.floor(n * 1e7) / 1e7).toString()
+}
+
   try {
     const body = await safeJson(req)
     const specificAutomationId = body?.automationId as string | undefined
@@ -112,6 +150,7 @@ serve(async (req) => {
           // history
           await supabaseClient.from('automation_executions').insert({
             automation_id: a.id,
+            executed_at: new Date().toISOString(),
             status: 'executed',
             tx_hash: submit.hash,
             metadata: { ledger: submit.ledger },
@@ -133,15 +172,168 @@ serve(async (req) => {
           }
 
           results.push({ id: a.id, type: a.type, status: 'success', hash: submit.hash })
-        } else if (a.type === 'swap' || a.type === 'rule') {
-          // TODO: implement swap/rule execution using pathPaymentStrictSend and condition evaluation
+        } else if (a.type === 'swap') {
+          // Only support price_target for now. Increase/decrease require a baseline not stored yet.
+          if (a.condition !== 'price_target') {
+            await supabaseClient.from('automation_executions').insert({
+              automation_id: a.id,
+              executed_at: new Date().toISOString(),
+              status: 'skipped',
+              error: 'swap condition not supported (only price_target)',
+              metadata: { type: 'swap', condition: a.condition },
+            })
+            results.push({ id: a.id, type: a.type, status: 'skipped' })
+            continue
+          }
+
+          // Decrypt secret and load account
+          const decryptedSecret = AES.decrypt(a.encrypted_secret, encryptionKey).toString(enc.Utf8)
+          if (!decryptedSecret) throw new Error('Failed to decrypt secret key')
+          const keypair = Keypair.fromSecret(decryptedSecret)
+          const account = await server.loadAccount(keypair.publicKey())
+
+          // Build assets (require CODE:ISSUER for non-native)
+          const sendAsset = parseAssetStrict(a.asset_from)
+          const destAsset = parseAssetStrict(a.asset_to)
+          const sendAmount = String(a.amount_from)
+          const slippagePct = typeof a.slippage === 'number' && a.slippage > 0 ? a.slippage : 0.5
+
+          // Quote using strict-send paths
+          const pathsResp: any = await (server as any).strictSendPaths(sendAsset, sendAmount, [destAsset]).call()
+          const records: any[] = pathsResp.records ?? pathsResp ?? []
+          if (!records.length) {
+            await supabaseClient.from('automation_executions').insert({
+              automation_id: a.id,
+              executed_at: new Date().toISOString(),
+              status: 'skipped',
+              error: 'No liquidity path for swap',
+              metadata: { type: 'swap' },
+            })
+            results.push({ id: a.id, type: a.type, status: 'skipped' })
+            continue
+          }
+
+          // Choose best path by max destination amount
+          records.sort((x, y) => Number(y.destination_amount) - Number(x.destination_amount))
+          const best = records[0]
+          const destAmount = Number(best.destination_amount)
+
+          // If a.condition_value exists, interpret as price target in dest units per 1 send unit when dest is USDC or similar.
+          // Approximate unit price as destAmount / sendAmount
+          if (typeof a.condition_value === 'number' && a.condition_value > 0) {
+            const unitPrice = destAmount / Number(sendAmount)
+            if (unitPrice < a.condition_value) {
+              await supabaseClient.from('automation_executions').insert({
+                automation_id: a.id,
+                executed_at: new Date().toISOString(),
+                status: 'skipped',
+                error: 'Price target not reached',
+                metadata: { type: 'swap', unitPrice, target: a.condition_value },
+              })
+              results.push({ id: a.id, type: a.type, status: 'skipped' })
+              continue
+            }
+          }
+
+          // Ensure trustline for destination if non-native
+          const needsTrust = destAsset.getCode && destAsset.getIssuer ? !(hasTrustline(account, destAsset)) : false
+          const fee = await server.fetchBaseFee().catch(() => 100)
+          const txb = new TransactionBuilder(account, { fee: String(fee), networkPassphrase })
+
+          if (needsTrust) {
+            txb.addOperation(Operation.changeTrust({ asset: destAsset }))
+          }
+
+          const destMin = toFixed7(destAmount * (1 - slippagePct / 100))
+          const pathAssets = (best.path ?? []).map((p: any) => p.asset_type === 'native' ? Asset.native() : new Asset(p.asset_code, p.asset_issuer))
+          txb.addOperation(Operation.pathPaymentStrictSend({
+            sendAsset,
+            sendAmount,
+            destination: keypair.publicKey(),
+            destAsset,
+            destMin: String(destMin),
+            path: pathAssets,
+          }))
+
+          const tx = txb.setTimeout(60).build()
+          tx.sign(keypair)
+
+          const submit = await server.submitTransaction(tx)
+
           await supabaseClient.from('automation_executions').insert({
             automation_id: a.id,
-            status: 'skipped',
-            error: 'Not implemented yet in Edge function',
-            metadata: { type: a.type },
+            executed_at: new Date().toISOString(),
+            status: 'executed',
+            tx_hash: submit.hash,
+            metadata: { type: 'swap', destAmount, ledger: submit.ledger },
           })
-          results.push({ id: a.id, type: a.type, status: 'skipped' })
+          results.push({ id: a.id, type: a.type, status: 'success', hash: submit.hash })
+        } else if (a.type === 'rule') {
+          // Implement balance-threshold + alert. Percent-drop and buy/sell are not yet supported.
+          if (a.rule_threshold == null || a.asset == null) {
+            await supabaseClient.from('automation_executions').insert({
+              automation_id: a.id,
+              executed_at: new Date().toISOString(),
+              status: 'skipped',
+              error: 'rule missing threshold or asset',
+              metadata: { type: 'rule' },
+            })
+            results.push({ id: a.id, type: a.type, status: 'skipped' })
+            continue
+          }
+
+          // If negative => percent drop not supported yet
+          if (typeof a.rule_threshold === 'number' && a.rule_threshold < 0) {
+            await supabaseClient.from('automation_executions').insert({
+              automation_id: a.id,
+              executed_at: new Date().toISOString(),
+              status: 'skipped',
+              error: 'percent-drop rules not supported yet',
+              metadata: { type: 'rule' },
+            })
+            results.push({ id: a.id, type: a.type, status: 'skipped' })
+            continue
+          }
+
+          const decryptedSecret = AES.decrypt(a.encrypted_secret, encryptionKey).toString(enc.Utf8)
+          if (!decryptedSecret) throw new Error('Failed to decrypt secret key')
+          const keypair = Keypair.fromSecret(decryptedSecret)
+          const account = await server.loadAccount(keypair.publicKey())
+
+          const targetAsset = parseAssetStrict(a.asset)
+          const bal = getBalance(account, targetAsset)
+          const threshold = Number(a.rule_threshold)
+
+          if (bal <= threshold) {
+            if (a.rule_action === 'alert' || !a.rule_action) {
+              await supabaseClient.from('automation_executions').insert({
+                automation_id: a.id,
+                executed_at: new Date().toISOString(),
+                status: 'executed',
+                tx_hash: null,
+                metadata: { type: 'rule', action: 'alert', balance: bal, threshold },
+              })
+              results.push({ id: a.id, type: a.type, status: 'success' })
+            } else {
+              await supabaseClient.from('automation_executions').insert({
+                automation_id: a.id,
+                executed_at: new Date().toISOString(),
+                status: 'skipped',
+                error: 'rule action not supported yet (buy/sell/custom)',
+                metadata: { type: 'rule', action: a.rule_action },
+              })
+              results.push({ id: a.id, type: a.type, status: 'skipped' })
+            }
+          } else {
+            await supabaseClient.from('automation_executions').insert({
+              automation_id: a.id,
+              executed_at: new Date().toISOString(),
+              status: 'skipped',
+              error: 'threshold not met',
+              metadata: { type: 'rule', balance: bal, threshold },
+            })
+            results.push({ id: a.id, type: a.type, status: 'skipped' })
+          }
         } else {
           results.push({ id: a.id, status: 'ignored' })
         }
@@ -149,6 +341,7 @@ serve(async (req) => {
         const message = err instanceof Error ? err.message : String(err)
         await supabaseClient.from('automation_executions').insert({
           automation_id: a.id,
+          executed_at: new Date().toISOString(),
           status: 'error',
           error: message,
         })

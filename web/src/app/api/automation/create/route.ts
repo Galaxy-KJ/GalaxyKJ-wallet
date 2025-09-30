@@ -26,10 +26,13 @@ export async function POST(req: NextRequest) {
       encryptedSecret = CryptoJS.AES.encrypt(secretKey, envKey).toString()
     }
 
-    // Memo: truncate to 28 chars
+    // Memo: truncate to 28 bytes (UTF-8)
     let memo: string | null = body.memo ?? null
     if (typeof memo === 'string') {
-      memo = memo.substring(0, 28)
+      const enc = new TextEncoder()
+      while (enc.encode(memo).length > 28) {
+        memo = memo.slice(0, -1)
+      }
     }
 
     // If type is payment and frequency provided, compute a default nextExecuteAt if missing

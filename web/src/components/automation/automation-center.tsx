@@ -114,6 +114,7 @@ export function AutomationCenter() {
   // Live Supabase-backed data and actions
   const {
     automations: sbAutomations,
+    executions: sbExecutions,
     loading: sbLoading,
     error: sbError,
     toggleActive: sbToggle,
@@ -738,6 +739,49 @@ export function AutomationCenter() {
           </div>
 
           <div className="space-y-6">
+            {/* Recent Executions from Supabase */}
+            <Card className="border-gray-800 bg-gradient-to-br from-gray-900/90 to-gray-950/90 backdrop-blur-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-medium text-gray-300">
+                  Recent Executions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                {sbExecutions.length === 0 ? (
+                  <div className="text-sm text-gray-500 text-center py-2">No executions yet</div>
+                ) : (
+                  <div className="space-y-2">
+                    {sbExecutions.slice(0, 8).map((e) => (
+                      <div key={e.id} className="flex items-center justify-between p-2 rounded-md bg-gray-900/40 border border-gray-800">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-7 h-7 rounded-full bg-gray-800 flex items-center justify-center">
+                            {e.status === 'executed' ? (
+                              <Zap className="h-3.5 w-3.5 text-green-400" />
+                            ) : e.status === 'error' ? (
+                              <AlertTriangle className="h-3.5 w-3.5 text-red-400" />
+                            ) : (
+                              <Clock className="h-3.5 w-3.5 text-blue-400" />
+                            )}
+                          </div>
+                          <div className="truncate">
+                            <div className="text-xs text-gray-300 truncate">
+                              {e.status.toUpperCase()} · {new Date(e.executed_at).toLocaleString()}
+                            </div>
+                            {e.tx_hash && (
+                              <div className="text-xs text-gray-500 truncate">{e.tx_hash}</div>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-xs bg-gray-800/50 text-gray-400 border-gray-700">
+                          {typeof e.metadata?.['type'] === 'string' ? (e.metadata?.['type'] as string) : 'payment'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card className="border-gray-800 bg-gradient-to-br from-gray-900/90 to-gray-950/90 backdrop-blur-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-medium text-gray-300">
