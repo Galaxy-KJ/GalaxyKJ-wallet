@@ -28,6 +28,16 @@ impl SecurityContract {
             return false;
         }
         
+        // Validate input: limits must be positive
+        if daily_limit <= 0 || monthly_limit <= 0 {
+            return false;
+        }
+        
+        // Validate input: monthly limit should be >= daily limit
+        if monthly_limit < daily_limit {
+            return false;
+        }
+        
         let current_time = env.ledger().timestamp();
         let limits = UserLimits::new(daily_limit, monthly_limit, current_time);
         store_user_limits(&env, &user, &limits);
@@ -50,6 +60,11 @@ impl SecurityContract {
         user.require_auth();
         
         if is_emergency_stop_active(&env) {
+            return false;
+        }
+        
+        // Validate input: amount must be positive
+        if amount <= 0 {
             return false;
         }
         
@@ -164,6 +179,27 @@ impl SecurityContract {
     ) -> bool {
         admin.require_auth();
         
+        // Validate input: threshold_amount must be positive if provided
+        if let Some(threshold) = threshold_amount {
+            if threshold <= 0 {
+                return false;
+            }
+        }
+        
+        // Validate input: time_window_seconds must be positive if provided
+        if let Some(time_window) = time_window_seconds {
+            if time_window == 0 {
+                return false;
+            }
+        }
+        
+        // Validate input: max_transactions must be positive if provided
+        if let Some(max_tx) = max_transactions {
+            if max_tx == 0 {
+                return false;
+            }
+        }
+        
         let rule = AlertRule {
             rule_id,
             alert_type,
@@ -260,6 +296,16 @@ impl SecurityContract {
         user.require_auth();
         
         if is_emergency_stop_active(&env) {
+            return false;
+        }
+        
+        // Validate input: limits must be positive
+        if daily_limit <= 0 || monthly_limit <= 0 {
+            return false;
+        }
+        
+        // Validate input: monthly limit should be >= daily limit
+        if monthly_limit < daily_limit {
             return false;
         }
         
