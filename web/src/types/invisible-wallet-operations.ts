@@ -178,6 +178,9 @@ export interface InvisibleWalletSDK {
   off(event: string, callback: (data: unknown) => void): void;
 }
 
+// Import WalletWithBalance for use in this file
+import type { WalletWithBalance } from './invisible-wallet';
+
 // Re-export types from invisible-wallet.ts for convenience
 export type { 
   NetworkType, 
