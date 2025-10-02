@@ -136,9 +136,9 @@ export function useAnalytics() {
    */
   const trackFeatureUsage = useCallback((feature: string, action: string, properties?: CustomEventProperties) => {
     const eventProperties: FeatureUsageProperties = {
+      ...(properties || {}),
       feature,
-      action,
-      ...(properties || {})
+      action
     };
     trackAnalyticsEvent(ANALYTICS_EVENTS.FEATURE_ACCESSED, eventProperties);
   }, []);
