@@ -8,17 +8,19 @@ import * as StellarSdk from "@stellar/stellar-sdk";
 import { STELLAR_CONFIG } from "../stellar/config";
 
 const ORACLE_CONTRACT_ADDRESS =
-  "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5OYKOMJRN63";
+  "CCYOZJCOPG34LLQQ7N24YXBM7LL62R7ONMZ3G6WZAAYPB5OYKOMJRN63"; // Testnet contract
 
 export class ReflectorPriceService {
   private rpcServer: StellarSdk.rpc.Server;
   private sourceKeypair: StellarSdk.Keypair;
 
-  constructor(sourceSecret: string) {
+  constructor() {
     this.rpcServer = new StellarSdk.rpc.Server(STELLAR_CONFIG.sorobanRpcURL, {
       allowHttp: false,
     });
-    this.sourceKeypair = Keypair.fromSecret(sourceSecret);
+    this.sourceKeypair = Keypair.fromSecret(
+      "SC65LNVENQQ3YRMFDGKE7KLFRBNDPZIH6S3APFIKUNOYFKDY3RPVL6M7"
+    );
   }
 
   /**
@@ -28,6 +30,7 @@ export class ReflectorPriceService {
   private createAsset(assetCode: string): xdr.ScVal {
     const symbol = xdr.ScVal.scvSymbol(assetCode);
 
+    // Enum variant: ["Other", Symbol(assetCode)]
     return xdr.ScVal.scvVec([xdr.ScVal.scvSymbol("Other"), symbol]);
   }
 
@@ -79,7 +82,6 @@ export class ReflectorPriceService {
     priceUSD: string;
   } | null {
     try {
-      // The result is directly a Map (PriceData struct)
       if (scval.switch().name === "scvMap") {
         const map = scval.map();
         if (!map) return null;
@@ -97,7 +99,6 @@ export class ReflectorPriceService {
           }
         });
 
-        // Convert price to human-readable format (Reflector uses 14 decimals)
         if (result.price) {
           const priceBigInt = BigInt(result.price);
           const divisor = BigInt(10 ** 14);
@@ -105,7 +106,6 @@ export class ReflectorPriceService {
           result.priceUSD = priceNum.toFixed(6);
         }
 
-        // Convert timestamp to Date
         if (result.timestamp) {
           result.timestampDate = new Date(
             Number(result.timestamp) * 1000
