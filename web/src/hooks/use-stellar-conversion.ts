@@ -6,27 +6,14 @@ import {
   TrustlineInfo,
   STELLAR_ASSETS
 } from "@/lib/stellar/conversion-service";
+import type {
+  ConversionState,
+  UseStellarConversionReturn,
+  NetworkStatus,
+  NetworkDiagnosticReport
+} from "@/types/crypto-conversion";
 
-export interface ConversionState {
-  loading: boolean;
-  error: string | null;
-  estimate: ConversionEstimate | null;
-  result: ConversionResult | null;
-  trustlines: {
-    source: TrustlineInfo | null;
-    destination: TrustlineInfo | null;
-  };
-  orderBook: {
-    bids: Array<{ price: string; amount: string }>;
-    asks: Array<{ price: string; amount: string }>;
-  } | null;
-  currentAssetPair: {
-    fromAssetId: string | null;
-    toAssetId: string | null;
-  };
-}
-
-export function useStellarConversion(slippageTolerance: number = 0.05) {
+export function useStellarConversion(slippageTolerance: number = 0.05): UseStellarConversionReturn {
   const [state, setState] = useState<ConversionState>({
     loading: false,
     error: null,
@@ -60,7 +47,7 @@ export function useStellarConversion(slippageTolerance: number = 0.05) {
     fromAssetId: string,
     toAssetId: string,
     amount: string
-  ) => {
+  ): Promise<void> => {
     if (!amount || parseFloat(amount) <= 0) {
       updateState({ estimate: null, error: null });
       return;
@@ -107,7 +94,7 @@ export function useStellarConversion(slippageTolerance: number = 0.05) {
     accountPublicKey: string,
     fromAssetId: string,
     toAssetId: string
-  ) => {
+  ): Promise<void> => {
     const sourceAsset = STELLAR_ASSETS[fromAssetId];
     const destinationAsset = STELLAR_ASSETS[toAssetId];
 
@@ -143,7 +130,7 @@ export function useStellarConversion(slippageTolerance: number = 0.05) {
   const fetchOrderBook = useCallback(async (
     fromAssetId: string,
     toAssetId: string
-  ) => {
+  ): Promise<void> => {
     const sourceAsset = STELLAR_ASSETS[fromAssetId];
     const destinationAsset = STELLAR_ASSETS[toAssetId];
 
@@ -182,7 +169,7 @@ export function useStellarConversion(slippageTolerance: number = 0.05) {
     amount: string,
     destinationAddress?: string,
     memo?: string
-  ) => {
+  ): Promise<void> => {
     if (!privateKey) {
       updateState({ error: "Private key is required for conversion" });
       return;
@@ -238,7 +225,7 @@ export function useStellarConversion(slippageTolerance: number = 0.05) {
   }, [state.estimate, state.loading, state.currentAssetPair, fetchOrderBook]);
 
   // Check network connectivity
-  const checkNetworkStatus = useCallback(async () => {
+  const checkNetworkStatus = useCallback(async (): Promise<NetworkStatus> => {
     try {
       return await stellarConversionService.checkNetworkConnectivity();
     } catch (error) {
@@ -250,7 +237,7 @@ export function useStellarConversion(slippageTolerance: number = 0.05) {
   }, []);
 
   // Run comprehensive network diagnostic
-  const runNetworkDiagnostic = useCallback(async () => {
+  const runNetworkDiagnostic = useCallback(async (): Promise<NetworkDiagnosticReport> => {
     try {
       return await stellarConversionService.runNetworkDiagnostic();
     } catch (error) {
