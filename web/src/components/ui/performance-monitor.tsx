@@ -8,10 +8,8 @@
 "use client";
 
 import { useEffect, useState, memo } from "react";
-import {
-  PerformanceMonitor,
-  type PerformanceMetrics,
-} from "@/lib/performance/optimizations";
+import type { PerformanceMetrics as PerfMetrics } from "@/lib/performance/optimizations";
+import { PerformanceMonitor } from "@/lib/performance/optimizations";
 import {
   GalaxyBundleAnalyzer,
   formatBundleSize,
@@ -37,7 +35,7 @@ interface PerformanceMonitorProps {
 }
 
 interface MetricsDisplayProps {
-  metrics: Record<string, PerformanceMetrics>;
+  metrics: Record<string, PerfMetrics>;
   bundleReport?: BundleAnalysisReport;
 }
 
@@ -272,9 +270,7 @@ export const PerformanceMonitorUI = memo(function PerformanceMonitorUI({
   onClose,
   position = "bottom-right",
 }: PerformanceMonitorProps) {
-  const [metrics, setMetrics] = useState<Record<string, PerformanceMetrics>>(
-    {}
-  );
+  const [metrics, setMetrics] = useState<Record<string, PerfMetrics>>({});
   const [bundleReport, setBundleReport] = useState<BundleAnalysisReport>();
   const [isMinimized, setIsMinimized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -411,9 +407,7 @@ export const PerformanceMonitorUI = memo(function PerformanceMonitorUI({
 // Hook for easy integration
 export function usePerformanceMonitor() {
   const [isVisible, setIsVisible] = useState(false);
-  const [metrics, setMetrics] = useState<Record<string, PerformanceMetrics>>(
-    {}
-  );
+  const [metrics, setMetrics] = useState<Record<string, PerfMetrics>>({});
 
   useEffect(() => {
     const monitor = PerformanceMonitor.getInstance();
