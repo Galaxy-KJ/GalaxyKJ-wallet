@@ -21,7 +21,7 @@ export interface AutomationRule {
   amount: string;
   condition: {
     operator: "gt" | "lt" | "gte" | "lte" | "eq";
-    value: number; 
+    value: number;
   };
   slippagePercent: number; // Max acceptable slippage
   createdAt: number;
@@ -56,7 +56,7 @@ export class ExecutionEngine {
   constructor(rpcUrl: string, networkPassphrase: string = Networks.PUBLIC) {
     this.priceService = new ReflectorPriceService();
     this.priceManager = new AssetPriceManager();
-    this.priceMonitor = new PriceMonitor(60000); 
+    this.priceMonitor = new PriceMonitor(60000);
     this.rpcServer = new StellarSdk.rpc.Server(rpcUrl, { allowHttp: false });
 
     this.priceMonitor.on("priceChange", (data) => {
@@ -263,7 +263,7 @@ export class ExecutionEngine {
       case "lte":
         return price <= target;
       case "eq":
-        return Math.abs(price - target) < 0.0001; 
+        return Math.abs(price - target) < 0.0001;
       default:
         return false;
     }
@@ -273,7 +273,7 @@ export class ExecutionEngine {
    * Estimate slippage based on trade size
    */
   private estimateSlippage(price: number, amount: number): number {
-      const tradeValue = price * amount;
+    const tradeValue = price * amount;
 
     if (tradeValue < 1000) return 0.1; // 0.1%
     if (tradeValue < 10000) return 0.5; // 0.5%
@@ -345,7 +345,6 @@ export class ExecutionEngine {
     targetPrice: number,
     estimatedSlippage: number
   ): number {
-
     const slippageFactor = 1 + (Math.random() * estimatedSlippage) / 100;
     return targetPrice * slippageFactor;
   }
@@ -508,7 +507,7 @@ export class ExecutionEngine {
     return this.executeSwap(context);
   }
 }
-import { AutomationRow } from '@/lib/supabase-types'
+import { AutomationRow } from "@/lib/supabase-types";
 
 /**
  * ExecutionEngine
@@ -517,12 +516,12 @@ import { AutomationRow } from '@/lib/supabase-types'
  * It never decrypts or signs locally. All sensitive work happens on Edge
  * using the ENCRYPTION_KEY environment secret.
  */
-export class ExecutionEngine {
-  private processUrl: string | null
+export class ExecutionEngine2 {
+  private processUrl: string | null;
 
   constructor() {
-    const base = process.env.NEXT_PUBLIC_SUPABASE_URL
-    this.processUrl = base ? `${base}/functions/v1/process-automations` : null
+    const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    this.processUrl = base ? `${base}/functions/v1/process-automations` : null;
   }
 
   /**
@@ -530,16 +529,20 @@ export class ExecutionEngine {
    * - Always use the Next.js API `/api/automation/execute` so we have auth context.
    */
   async triggerManualExecution(automationId: string, immediate = false) {
-    const res = await fetch('/api/automation/execute', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/automation/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: automationId, immediate }),
-    })
+    });
     if (!res.ok) {
-      const txt = await res.text()
-      throw new Error(`Manual execute failed: ${res.status} ${txt}`)
+      const txt = await res.text();
+      throw new Error(`Manual execute failed: ${res.status} ${txt}`);
     }
-    return res.json() as Promise<{ enqueued: boolean; triggered: boolean; triggerError: string | null }>
+    return res.json() as Promise<{
+      enqueued: boolean;
+      triggered: boolean;
+      triggerError: string | null;
+    }>;
   }
 
   /**
@@ -547,27 +550,29 @@ export class ExecutionEngine {
    * Typically used only in development/testing.
    */
   async directEdgeTrigger(automationId: string) {
-    if (!this.processUrl) throw new Error('Edge Function URL not configured')
+    if (!this.processUrl) throw new Error("Edge Function URL not configured");
     const resp = await fetch(this.processUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ automationId }),
-    })
-    return resp
+    });
+    return resp;
   }
 
   /**
    * Helper for UI to compute a short status summary.
    */
   getStatusSummary(a: AutomationRow): string {
-    if (!a.active) return 'inactive'
-    if (a.type === 'payment') {
-      return a.next_execute_at ? `next: ${new Date(a.next_execute_at).toLocaleString()}` : 'scheduled'
+    if (!a.active) return "inactive";
+    if (a.type === "payment") {
+      return a.next_execute_at
+        ? `next: ${new Date(a.next_execute_at).toLocaleString()}`
+        : "scheduled";
     }
-    if (a.type === 'swap') return 'waiting for price condition'
-    if (a.type === 'rule') return 'monitoring rules'
-    return 'active'
+    if (a.type === "swap") return "waiting for price condition";
+    if (a.type === "rule") return "monitoring rules";
+    return "active";
   }
 }
 
-export const executionEngine = new ExecutionEngine()
+export const executionEngine = new ExecutionEngine2();
