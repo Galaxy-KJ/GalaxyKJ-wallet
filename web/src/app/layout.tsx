@@ -6,7 +6,8 @@ import { LanguageProvider } from "@/contexts/language-provider";
 import { SecureKeyProvider } from "@/contexts/secure-key-context";
 import { AnalyticsProvider } from "@/components/ui/analytics-provider";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
+import ClientShell from "@/components/root/client-shell";
 import { ClientLayoutComponents } from "@/components/layout/client-layout";
 
 const geistSans = Geist({
@@ -31,11 +32,10 @@ export const metadata: Metadata = {
   },
 };
 
-
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
     <html lang="en">

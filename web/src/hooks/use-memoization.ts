@@ -274,7 +274,7 @@ export function useAsyncMemo<T>(
 /**
  * Expensive computation memoization with performance metrics
  */
-export function useExpensiveComputation<T, Args extends any[]>(
+export function useExpensiveComputation<T extends object, Args extends unknown[]>(
   computeFn: (...args: Args) => T,
   args: Args,
   options: MemoizationOptions & { 
@@ -359,8 +359,8 @@ export function useExpensiveComputation<T, Args extends any[]>(
     return value;
   }, args); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Return result with metrics
-  return Object.assign(result, { metrics: metricsRef.current });
+  // Return a new object merging result with metrics to satisfy type constraints
+  return { ...result, metrics: metricsRef.current } as T & { metrics: ComputeMetrics };
 }
 
 /**
@@ -503,7 +503,7 @@ export function useGlobalCache<T>(
 ): T {
   const globalCacheRef = useRef<MemoCache<T>>(
     typeof window !== 'undefined' 
-      ? ((window as any).__GALAXY_GLOBAL_CACHE__ ||= {})
+      ? (window.__GALAXY_GLOBAL_CACHE__ ||= {})
       : {}
   );
 
