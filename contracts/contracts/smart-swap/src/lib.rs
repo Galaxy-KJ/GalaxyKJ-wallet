@@ -59,7 +59,7 @@ impl SmartSwap {
         dex_address: Address,
     ) -> Result<(), Symbol> {
         if env.storage().instance().has(&DataKey::Admin) {
-            return Err(Symbol::new(&env, "already_initialized"));
+            return Err(Symbol::new(&env, "contract_already_initialized"));
         }
 
         let oracle_config = OracleConfigManager::create_default_config(&env, oracle_address);
@@ -106,14 +106,14 @@ impl SmartSwap {
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or_else(|| Symbol::new(&env, "not_initialized"))?;
+            .ok_or_else(|| Symbol::new(&env, "contract_not_initialized"))?;
 
         // Check user condition limit
         Self::check_user_condition_limit(&env, &caller, config.max_conditions_per_user)?;
 
         // Validate minimum value
         if request.amount_to_swap < config.min_condition_value {
-            return Err(Symbol::new(&env, "amount_below_minimum"));
+            return Err(Symbol::new(&env, "swap_amount_below_minimum"));
         }
 
         // Get current price from oracle
@@ -124,10 +124,10 @@ impl SmartSwap {
         );
 
         if !price_result.success {
-            return Err(price_result.error_message.unwrap_or(Symbol::new(&env, "price_unavailable")));
+            return Err(price_result.error_message.unwrap_or(Symbol::new(&env, "oracle_price_unavailable")));
         }
 
-        let current_price = price_result.price_data.ok_or_else(|| Symbol::new(&env, "no_price_data"))?;
+        let current_price = price_result.price_data.ok_or_else(|| Symbol::new(&env, "oracle_no_price_data"))?;
 
         // Validate price data for swap
         PriceOracleClient::validate_price_for_swap(&env, &current_price, &config.oracle_config)?;
@@ -142,7 +142,7 @@ impl SmartSwap {
         )?;
 
         if !has_liquidity {
-            return Err(Symbol::new(&env, "insufficient_liquidity"));
+            return Err(Symbol::new(&env, "dex_insufficient_liquidity"));
         }
 
         // Generate condition ID and create condition
@@ -188,10 +188,10 @@ impl SmartSwap {
             .storage()
             .instance()
             .get(&DataKey::SwapConditions)
-            .ok_or_else(|| Symbol::new(&env, "no_conditions"))?;
+            .ok_or_else(|| Symbol::new(&env, "no_swap_conditions"))?;
 
         let mut condition = conditions.get(&condition_id)
-            .ok_or_else(|| Symbol::new(&env, "condition_not_found"))?;
+            .ok_or_else(|| Symbol::new(&env, "swap_condition_not_found"))?;
 
         // Validate condition is still active
         condition.is_valid(&env)?;
@@ -200,7 +200,7 @@ impl SmartSwap {
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or_else(|| Symbol::new(&env, "not_initialized"))?;
+            .ok_or_else(|| Symbol::new(&env, "contract_not_initialized"))?;
 
         // Get current price
         let price_result = PriceOracleClient::get_price(
@@ -210,10 +210,10 @@ impl SmartSwap {
         );
 
         if !price_result.success {
-            return Err(price_result.error_message.unwrap_or(Symbol::new(&env, "price_unavailable")));
+            return Err(price_result.error_message.unwrap_or(Symbol::new(&env, "oracle_price_unavailable")));
         }
 
-        let current_price = price_result.price_data.ok_or_else(|| Symbol::new(&env, "no_price_data"))?;
+        let current_price = price_result.price_data.ok_or_else(|| Symbol::new(&env, "oracle_no_price_data"))?;
 
         // Check if condition should be executed
         if !condition.should_execute(current_price.price) {
@@ -267,14 +267,14 @@ impl SmartSwap {
             .storage()
             .instance()
             .get(&DataKey::SwapConditions)
-            .ok_or_else(|| Symbol::new(&env, "no_conditions"))?;
+            .ok_or_else(|| Symbol::new(&env, "no_swap_conditions"))?;
 
         let mut condition = conditions.get(&condition_id)
-            .ok_or_else(|| Symbol::new(&env, "condition_not_found"))?;
+            .ok_or_else(|| Symbol::new(&env, "swap_condition_not_found"))?;
 
         // Check ownership
         if condition.owner != caller {
-            return Err(Symbol::new(&env, "not_owner"));
+            return Err(Symbol::new(&env, "caller_not_owner"));
         }
 
         // Check if condition can be cancelled
@@ -292,7 +292,7 @@ impl SmartSwap {
                 log!(&env, "Condition {} cancelled by user", condition_id);
                 Ok(())
             }
-            _ => Err(Symbol::new(&env, "cannot_cancel")),
+            _ => Err(Symbol::new(&env, "condition_cannot_be_cancelled")),
         }
     }
 
@@ -333,7 +333,7 @@ impl SmartSwap {
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or_else(|| Symbol::new(&env, "not_initialized"))?;
+            .ok_or_else(|| Symbol::new(&env, "contract_not_initialized"))?;
 
         StellarDexIntegration::get_swap_quote(&env, &config.dex_config, token_in, token_out, amount_in)
     }
@@ -373,7 +373,7 @@ impl SmartSwap {
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or_else(|| Symbol::new(&env, "not_initialized"))?;
+            .ok_or_else(|| Symbol::new(&env, "contract_not_initialized"))?;
 
         config.paused = paused;
         env.storage().instance().set(&DataKey::Admin, &config);
@@ -397,7 +397,7 @@ impl SmartSwap {
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or_else(|| Symbol::new(&env, "not_initialized"))?;
+            .ok_or_else(|| Symbol::new(&env, "contract_not_initialized"))?;
 
         config.oracle_config = new_oracle_config;
         env.storage().instance().set(&DataKey::Admin, &config);
@@ -421,7 +421,7 @@ impl SmartSwap {
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or_else(|| Symbol::new(&env, "not_initialized"))?;
+            .ok_or_else(|| Symbol::new(&env, "contract_not_initialized"))?;
 
         config.dex_config = new_dex_config;
         env.storage().instance().set(&DataKey::Admin, &config);
@@ -512,7 +512,7 @@ impl SmartSwap {
         );
 
         if !swap_result.success {
-            return Err(swap_result.error_message.unwrap_or(Symbol::new(env, "swap_failed")));
+            return Err(swap_result.error_message.unwrap_or(Symbol::new(env, "dex_swap_execution_failed")));
         }
 
         Ok(execution)
@@ -570,7 +570,7 @@ impl SmartSwap {
             .count();
 
         if active_count >= max_conditions as usize {
-            return Err(Symbol::new(env, "condition_limit_exceeded"));
+            return Err(Symbol::new(env, "user_condition_limit_exceeded"));
         }
 
         Ok(())
@@ -606,10 +606,10 @@ impl SmartSwap {
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or_else(|| Symbol::new(env, "not_initialized"))?;
+            .ok_or_else(|| Symbol::new(env, "contract_not_initialized"))?;
 
         if caller != &config.admin {
-            return Err(Symbol::new(env, "unauthorized"));
+            return Err(Symbol::new(env, "unauthorized_caller"));
         }
 
         Ok(())
@@ -620,10 +620,10 @@ impl SmartSwap {
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or_else(|| Symbol::new(env, "not_initialized"))?;
+            .ok_or_else(|| Symbol::new(env, "contract_not_initialized"))?;
 
         if config.paused {
-            return Err(Symbol::new(env, "contract_paused"));
+            return Err(Symbol::new(env, "contract_is_paused"));
         }
 
         Ok(())
