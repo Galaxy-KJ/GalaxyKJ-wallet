@@ -16,7 +16,25 @@ import {
   updateAnalyticsPrivacySettings,
   isAnalyticsEnabled
 } from '@/lib/analytics';
-import { ANALYTICS_EVENTS } from '@/types/analytics';
+import { 
+  ANALYTICS_EVENTS,
+  CustomEventProperties,
+  EducationEngagementProperties,
+  ErrorContext,
+  FeatureUsageProperties,
+  InvisibleWalletProperties,
+  OfflineModeProperties,
+  PageViewProperties,
+  PerformanceMetrics,
+  PrivacySettings,
+  SettingsChangeProperties,
+  TransactionAnalytics,
+  TransactionCompletedProperties,
+  TransactionInitiatedProperties,
+  UserProperties,
+  WalletCreationProperties,
+  WalletRecoveryProperties
+} from '@/types/analytics';
 
 /**
  * Analytics hook for React components
@@ -30,11 +48,12 @@ export function useAnalytics() {
   useEffect(() => {
     const handleRouteChange = (url: string) => {
       if (lastPageRef.current !== url) {
-        trackAnalyticsEvent(ANALYTICS_EVENTS.PAGE_VIEW, {
+        const properties: PageViewProperties = {
           page: url,
           fromPage: lastPageRef.current,
           timestamp: Date.now()
-        });
+        };
+        trackAnalyticsEvent(ANALYTICS_EVENTS.PAGE_VIEW, properties);
         lastPageRef.current = url;
       }
     };
@@ -52,35 +71,35 @@ export function useAnalytics() {
   /**
    * Track a custom event
    */
-  const trackEvent = useCallback((event: string, properties?: Record<string, any>) => {
+  const trackEvent = useCallback((event: string, properties?: CustomEventProperties) => {
     trackAnalyticsEvent(event, properties);
   }, []);
 
   /**
    * Track an error
    */
-  const trackError = useCallback((error: Error, context?: Record<string, any>) => {
+  const trackError = useCallback((error: Error, context?: ErrorContext) => {
     trackAnalyticsError(error, context);
   }, []);
 
   /**
    * Track performance metrics
    */
-  const trackPerformance = useCallback((metrics: Record<string, any>) => {
+  const trackPerformance = useCallback((metrics: Partial<PerformanceMetrics>) => {
     trackAnalyticsPerformance(metrics);
   }, []);
 
   /**
    * Track transaction analytics
    */
-  const trackTransaction = useCallback((transaction: Record<string, any>) => {
+  const trackTransaction = useCallback((transaction: TransactionAnalytics) => {
     trackAnalyticsTransaction(transaction);
   }, []);
 
   /**
    * Set user identity
    */
-  const setUser = useCallback((userId: string, properties?: Record<string, any>) => {
+  const setUser = useCallback((userId: string, properties?: UserProperties) => {
     setAnalyticsUser(userId, properties);
   }, []);
 
@@ -101,13 +120,7 @@ export function useAnalytics() {
   /**
    * Update privacy settings
    */
-  const updatePrivacySettings = useCallback((settings: Partial<{
-    analyticsEnabled: boolean;
-    errorReportingEnabled: boolean;
-    performanceMonitoringEnabled: boolean;
-    dataRetentionDays: number;
-    anonymizeData: boolean;
-  }>) => {
+  const updatePrivacySettings = useCallback((settings: Partial<PrivacySettings>) => {
     updateAnalyticsPrivacySettings(settings);
   }, []);
 
@@ -121,47 +134,51 @@ export function useAnalytics() {
   /**
    * Track feature usage
    */
-  const trackFeatureUsage = useCallback((feature: string, action: string, properties?: Record<string, any>) => {
-    trackAnalyticsEvent(ANALYTICS_EVENTS.FEATURE_ACCESSED, {
+  const trackFeatureUsage = useCallback((feature: string, action: string, properties?: CustomEventProperties) => {
+    const eventProperties: FeatureUsageProperties = {
+      ...(properties || {}),
       feature,
-      action,
-      ...properties
-    });
+      action
+    };
+    trackAnalyticsEvent(ANALYTICS_EVENTS.FEATURE_ACCESSED, eventProperties);
   }, []);
 
   /**
    * Track wallet creation
    */
   const trackWalletCreation = useCallback((walletType: string, method: string, success: boolean, errorMessage?: string) => {
-    trackAnalyticsEvent(ANALYTICS_EVENTS.WALLET_CREATED, {
+    const properties: WalletCreationProperties = {
       walletType,
       method,
       success,
       errorMessage
-    });
+    };
+    trackAnalyticsEvent(ANALYTICS_EVENTS.WALLET_CREATED, properties);
   }, []);
 
   /**
    * Track wallet recovery
    */
   const trackWalletRecovery = useCallback((walletType: string, method: string, success: boolean, errorMessage?: string) => {
-    trackAnalyticsEvent(ANALYTICS_EVENTS.WALLET_RECOVERED, {
+    const properties: WalletRecoveryProperties = {
       walletType,
       method,
       success,
       errorMessage
-    });
+    };
+    trackAnalyticsEvent(ANALYTICS_EVENTS.WALLET_RECOVERED, properties);
   }, []);
 
   /**
    * Track transaction initiation
    */
   const trackTransactionInitiated = useCallback((transactionType: string, amount?: string, currency?: string) => {
-    trackAnalyticsEvent(ANALYTICS_EVENTS.TRANSACTION_INITIATED, {
+    const properties: TransactionInitiatedProperties = {
       transactionType,
       amount,
       currency
-    });
+    };
+    trackAnalyticsEvent(ANALYTICS_EVENTS.TRANSACTION_INITIATED, properties);
   }, []);
 
   /**
@@ -169,11 +186,12 @@ export function useAnalytics() {
    */
   const trackTransactionCompleted = useCallback((transactionType: string, success: boolean, errorMessage?: string) => {
     const event = success ? ANALYTICS_EVENTS.TRANSACTION_COMPLETED : ANALYTICS_EVENTS.TRANSACTION_FAILED;
-    trackAnalyticsEvent(event, {
+    const properties: TransactionCompletedProperties = {
       transactionType,
       success,
       errorMessage
-    });
+    };
+    trackAnalyticsEvent(event, properties);
   }, []);
 
   /**
@@ -181,45 +199,49 @@ export function useAnalytics() {
    */
   const trackOfflineMode = useCallback((enabled: boolean) => {
     const event = enabled ? ANALYTICS_EVENTS.OFFLINE_MODE_ENABLED : ANALYTICS_EVENTS.OFFLINE_MODE_DISABLED;
-    trackAnalyticsEvent(event, {
+    const properties: OfflineModeProperties = {
       enabled
-    });
+    };
+    trackAnalyticsEvent(event, properties);
   }, []);
 
   /**
    * Track invisible wallet usage
    */
-  const trackInvisibleWallet = useCallback((action: string, success: boolean, errorMessage?: string) => {
+  const trackInvisibleWallet = useCallback((action: 'created' | 'used', success: boolean, errorMessage?: string) => {
     const event = action === 'created' ? ANALYTICS_EVENTS.INVISIBLE_WALLET_CREATED : ANALYTICS_EVENTS.INVISIBLE_WALLET_USED;
-    trackAnalyticsEvent(event, {
+    const properties: InvisibleWalletProperties = {
       action,
       success,
       errorMessage
-    });
+    };
+    trackAnalyticsEvent(event, properties);
   }, []);
 
   /**
    * Track education content engagement
    */
-  const trackEducationEngagement = useCallback((contentType: string, contentId: string, action: string) => {
+  const trackEducationEngagement = useCallback((contentType: 'video' | 'article', contentId: string, action: string) => {
     const event = contentType === 'video' ? ANALYTICS_EVENTS.EDUCATION_VIDEO_WATCHED : ANALYTICS_EVENTS.EDUCATION_ARTICLE_VIEWED;
-    trackAnalyticsEvent(event, {
+    const properties: EducationEngagementProperties = {
       contentType,
       contentId,
       action
-    });
+    };
+    trackAnalyticsEvent(event, properties);
   }, []);
 
   /**
    * Track settings changes
    */
-  const trackSettingsChange = useCallback((settingCategory: string, settingName: string, newValue: any) => {
+  const trackSettingsChange = useCallback((settingCategory: string, settingName: string, newValue: unknown) => {
     const event = settingCategory === 'privacy' ? ANALYTICS_EVENTS.PRIVACY_SETTINGS_UPDATED : ANALYTICS_EVENTS.SETTINGS_CHANGED;
-    trackAnalyticsEvent(event, {
+    const properties: SettingsChangeProperties = {
       settingCategory,
       settingName,
       newValue
-    });
+    };
+    trackAnalyticsEvent(event, properties);
   }, []);
 
   return {

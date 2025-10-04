@@ -3,10 +3,97 @@
  * TypeScript interfaces for analytics events, error reports, and monitoring data
  */
 
+// Specific Event Property Interfaces
+export interface PageViewProperties {
+  page: string;
+  fromPage: string;
+  timestamp: number;
+}
+
+export interface CustomEventProperties {
+  [key: string]: unknown;
+}
+
+export interface ErrorContext {
+  [key: string]: unknown;
+}
+
+export interface UserProperties {
+  [key: string]: unknown;
+}
+
+export interface FeatureUsageProperties {
+  feature: string;
+  action: string;
+  [key: string]: unknown;
+}
+
+export interface WalletCreationProperties {
+  walletType: string;
+  method: string;
+  success: boolean;
+  errorMessage?: string;
+}
+
+export interface WalletRecoveryProperties {
+  walletType: string;
+  method: string;
+  success: boolean;
+  errorMessage?: string;
+}
+
+export interface TransactionInitiatedProperties {
+  transactionType: string;
+  amount?: string;
+  currency?: string;
+}
+
+export interface TransactionCompletedProperties {
+  transactionType: string;
+  success: boolean;
+  errorMessage?: string;
+}
+
+export interface OfflineModeProperties {
+  enabled: boolean;
+}
+
+export interface InvisibleWalletProperties {
+  action: 'created' | 'used';
+  success: boolean;
+  errorMessage?: string;
+}
+
+export interface EducationEngagementProperties {
+  contentType: 'video' | 'article';
+  contentId: string;
+  action: string;
+}
+
+export interface SettingsChangeProperties {
+  settingCategory: string;
+  settingName: string;
+  newValue: unknown;
+}
+
+// Union type for all event properties
+export type AnalyticsEventProperties =
+  | PageViewProperties
+  | CustomEventProperties
+  | FeatureUsageProperties
+  | WalletCreationProperties
+  | WalletRecoveryProperties
+  | TransactionInitiatedProperties
+  | TransactionCompletedProperties
+  | OfflineModeProperties
+  | InvisibleWalletProperties
+  | EducationEngagementProperties
+  | SettingsChangeProperties;
+
 // Analytics Event Types
 export interface AnalyticsEvent {
   event: string;
-  properties: Record<string, any>;
+  properties: AnalyticsEventProperties;
   userId?: string;
   timestamp: number;
   sessionId?: string;
@@ -22,7 +109,7 @@ export interface ErrorReport {
     url: string;
     timestamp: number;
     componentStack?: string;
-  };
+  } & ErrorContext;
   breadcrumbs: Array<{
     message: string;
     level: 'info' | 'warning' | 'error';
@@ -61,7 +148,7 @@ export interface UserBehaviorEvent {
   event: 'page_view' | 'feature_used' | 'wallet_created' | 'wallet_recovered' | 'transaction_initiated' | 'transaction_completed' | 'offline_mode_enabled' | 'invisible_wallet_used';
   page?: string;
   feature?: string;
-  properties: Record<string, any>;
+  properties: AnalyticsEventProperties;
   timestamp: number;
   sessionId: string;
 }
@@ -103,16 +190,16 @@ export interface Breadcrumb {
   level: 'info' | 'warning' | 'error';
   timestamp: number;
   category: 'navigation' | 'http' | 'user' | 'ui' | 'stellar' | 'offline';
-  data?: Record<string, any>;
+  data?: CustomEventProperties;
 }
 
 // Analytics Provider Context
 export interface AnalyticsContextType {
-  trackEvent: (event: string, properties?: Record<string, any>) => void;
-  trackError: (error: Error, context?: Record<string, any>) => void;
+  trackEvent: (event: string, properties?: CustomEventProperties) => void;
+  trackError: (error: Error, context?: ErrorContext) => void;
   trackPerformance: (metrics: Partial<PerformanceMetrics>) => void;
   trackTransaction: (transaction: TransactionAnalytics) => void;
-  setUser: (userId: string, properties?: Record<string, any>) => void;
+  setUser: (userId: string, properties?: UserProperties) => void;
   resetUser: () => void;
   isEnabled: boolean;
   privacySettings: PrivacySettings;
