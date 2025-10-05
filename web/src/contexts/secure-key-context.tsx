@@ -1,4 +1,6 @@
 // web/src/contexts/secure-key-context.tsx
+
+"use client";
 import React, {
   createContext,
   useCallback,
