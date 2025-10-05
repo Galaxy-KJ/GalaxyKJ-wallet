@@ -2948,11 +2948,7 @@
   resolved "https://registry.npmjs.org/@types/react-dom/-/react-dom-19.0.4.tgz"
   integrity sha512-4fSQ8vWFkg+TGhePfUzVmat3eC14TXYSsiiDSLI0dVLsrm9gZFABjPy/Qu6TKgl1tq1Bu1yDsuQgY3A3DOjCcg==
 
-<<<<<<< HEAD
-"@types/react@*", "@types/react@^18.0.0 || ^19.0.0", "@types/react@^19", "@types/react@^19.0.0", "@types/react@>=18.0.0":
-=======
 "@types/react@*", "@types/react@^18.0.0 || ^19.0.0", "@types/react@^19", "@types/react@^19.0.0", "@types/react@>= 16", "@types/react@>=18.0.0":
->>>>>>> upstream/main
   version "19.0.10"
   resolved "https://registry.npmjs.org/@types/react/-/react-19.0.10.tgz"
   integrity sha512-JuRQ9KXLEjaUNjTWpzuR231Z2WpIwczOkBEIvbHNCzQefFIT0L8IqE6NV6ULLyC1SI/i234JnDoMkfg+RjQj2g==
@@ -3189,7 +3185,8 @@
   resolved "https://registry.npmjs.org/@unrs/resolver-binding-wasm32-wasi/-/resolver-binding-wasm32-wasi-1.11.1.tgz"
   integrity sha512-5u4RkfxJm+Ng7IWgkzi3qrFOvLvQYnPBmjmZQ8+szTK/b31fQCnleNl1GgEt7nIsZRIf5PLhPwT0WM+q45x/UQ==
   dependencies:
-    "@napi-rs/wasm-runtime" "^0.2.11"
+    "@webassemblyjs/helper-numbers" "1.13.2"
+    "@webassemblyjs/helper-wasm-bytecode" "1.13.2"
 
 "@unrs/resolver-binding-win32-arm64-msvc@1.11.1":
   version "1.11.1"
@@ -3872,7 +3869,6 @@ bare-semver@^1.0.0:
   resolved "https://registry.npmjs.org/bare-semver/-/bare-semver-1.0.1.tgz"
   integrity sha512-UtggzHLiTrmFOC/ogQ+Hy7VfoKoIwrP1UFcYtTxoCUdLtsIErT8+SWtOC2DH/snT9h+xDrcBEPcwKei1mzemgg==
 
-<<<<<<< HEAD
 bare-url@*, bare-url@^2.1.0:
   version "2.1.6"
   resolved "https://registry.npmjs.org/bare-url/-/bare-url-2.1.6.tgz"
@@ -3880,8 +3876,6 @@ bare-url@*, bare-url@^2.1.0:
   dependencies:
     bare-path "^3.0.0"
 
-=======
->>>>>>> upstream/main
 base-x@^3.0.2:
   version "3.0.11"
   resolved "https://registry.npmjs.org/base-x/-/base-x-3.0.11.tgz"
@@ -5767,11 +5761,7 @@ i18next-http-backend@^3.0.2:
   dependencies:
     cross-fetch "4.0.0"
 
-<<<<<<< HEAD
-i18next@^25.5.2, "i18next@>= 23.2.3":
-=======
 i18next@^25.5.2, "i18next@>= 23.4.0":
->>>>>>> upstream/main
   version "25.5.2"
   resolved "https://registry.npmjs.org/i18next/-/i18next-25.5.2.tgz"
   integrity sha512-lW8Zeh37i/o0zVr+NoCHfNnfvVw+M6FQbRp36ZZ/NyHDJ3NJVpp2HhAUyU9WafL5AssymNoOjMRB48mmx2P6Hw==
@@ -7522,8 +7512,6 @@ react-chartjs-2@^5.3.0:
   resolved "https://registry.npmjs.org/react-chartjs-2/-/react-chartjs-2-5.3.0.tgz"
   integrity sha512-UfZZFnDsERI3c3CZGxzvNJd02SHjaSJ8kgW1djn65H1KK8rehwTjyrRKOG3VTMG8wtHZ5rgAO5oTHtHi9GCCmw==
 
-<<<<<<< HEAD
-=======
 react-dnd-html5-backend@^16.0.1:
   version "16.0.1"
   resolved "https://registry.npmjs.org/react-dnd-html5-backend/-/react-dnd-html5-backend-16.0.1.tgz"
@@ -7542,7 +7530,6 @@ react-dnd@^16.0.1:
     fast-deep-equal "^3.1.3"
     hoist-non-react-statics "^3.3.2"
 
->>>>>>> upstream/main
 react-dom@*, "react-dom@^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom@^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc", "react-dom@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom@^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1", "react-dom@^18 || ^19 || ^19.0.0-rc", "react-dom@^18.0.0 || ^19.0.0", "react-dom@^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", react-dom@^19.0.0, react-dom@>=16.6.0, react-dom@>=16.8.0:
   version "19.0.0"
   resolved "https://registry.npmjs.org/react-dom/-/react-dom-19.0.0.tgz"
@@ -7628,12 +7615,16 @@ react-transition-group@^4.4.5:
     dom-helpers "^5.0.1"
     loose-envify "^1.4.0"
     prop-types "^15.6.2"
+<<<<<<< HEAD
+    react@*, "react@^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.14.0 || 17.x || 18.x || 19.x", "react@^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc", "react@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc", "react@^16.8.0 || ^17.0.0 || ^18.0.0 || >=19.0.0-rc <19.0.0 || ^19.0.0", "react@^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1", "react@^17.0.0 || ^18.0.0 || >=19.0.0-rc <19.0.0 || ^19.0.0", "react@^18 || ^19 || ^19.0.0-rc", "react@^18.0.0 || ^19.0.0", "react@^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", react@^19.0.0, "react@>= 16.14", "react@>= 16.8.0", "react@>= 16.8.0 || 17.x.x || ^18.0.0-0 || ^19.0.0-0", react@>=16.6.0, react@>=16.8.0, react@>=18.0.0:
+=======
 
 <<<<<<< HEAD
 react@*, "react@^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.14.0 || 17.x || 18.x || 19.x", "react@^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc", "react@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc", "react@^16.8.0 || ^17.0.0 || ^18.0.0 || >=19.0.0-rc <19.0.0 || ^19.0.0", "react@^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1", "react@^17.0.0 || ^18.0.0 || >=19.0.0-rc <19.0.0 || ^19.0.0", "react@^18 || ^19 || ^19.0.0-rc", "react@^18.0.0 || ^19.0.0", "react@^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", react@^19.0.0, "react@>= 16.8.0", "react@>= 16.8.0 || 17.x.x || ^18.0.0-0 || ^19.0.0-0", react@>=16.6.0, react@>=16.8.0, react@>=18.0.0:
 =======
 react@*, "react@^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.14.0 || 17.x || 18.x || 19.x", "react@^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc", "react@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc", "react@^16.8.0 || ^17.0.0 || ^18.0.0 || >=19.0.0-rc <19.0.0 || ^19.0.0", "react@^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1", "react@^17.0.0 || ^18.0.0 || >=19.0.0-rc <19.0.0 || ^19.0.0", "react@^18 || ^19 || ^19.0.0-rc", "react@^18.0.0 || ^19.0.0", "react@^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", react@^19.0.0, "react@>= 16.14", "react@>= 16.8.0", "react@>= 16.8.0 || 17.x.x || ^18.0.0-0 || ^19.0.0-0", react@>=16.6.0, react@>=16.8.0, react@>=18.0.0:
 >>>>>>> upstream/main
+>>>>>>> aeeca89a38cd81eb4f26cf73b0e215c9b6ad0102
   version "19.0.0"
   resolved "https://registry.npmjs.org/react/-/react-19.0.0.tgz"
   integrity sha512-V8AVnmPIICiWpGfm6GLzCR/W5FXLchHop40W4nXBmdlEceh16rCN8O8LNWm5bh5XUX91fh7KpA+W0TgMKmgTpQ==
