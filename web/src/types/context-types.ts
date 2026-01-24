@@ -44,4 +44,10 @@ export interface SecureKeyContextValue {
 
   /** Clear the last error */
   clearError: () => void;
+
+  /** Set private key directly (for login/wallet recovery flows) */
+  setPrivateKey: (privateKey: string) => void;
+
+  /** Check if private key is available */
+  hasPrivateKey: () => boolean;
 }
