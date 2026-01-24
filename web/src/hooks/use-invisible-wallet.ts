@@ -18,49 +18,17 @@ import {
   SignTransactionResponse, 
   NetworkType 
 } from '@/types/invisible-wallet';
+import {
+  UseInvisibleWalletState,
+  UseInvisibleWalletReturn,
+  CreateWalletOptions,
+  RecoverWalletOptions,
+  GetWalletOptions,
+  UseWalletBalanceReturn,
+  UsePassphraseValidationReturn
+} from '@/types/invisible-wallet-operations';
 
-/**
- * Hook state interface
- */
-interface UseInvisibleWalletState {
-  wallet: WalletWithBalance | null;
-  isLoading: boolean;
-  error: string | null;
-  isInitialized: boolean;
-}
-
-/**
- * Hook return interface
- */
-interface UseInvisibleWalletReturn extends UseInvisibleWalletState {
-  // Core operations
-  createWallet: (email: string, passphrase: string, options?: CreateWalletOptions) => Promise<WalletResponse>;
-  createWalletWithKeys: (email: string, passphrase: string, options?: CreateWalletOptions) => Promise<WalletCreationResponse>;
-  recoverWallet: (email: string, passphrase: string, options?: RecoverWalletOptions) => Promise<WalletResponse>;
-  getWallet: (email: string, options?: GetWalletOptions) => Promise<WalletWithBalance | null>;
-  signTransaction: (walletId: string, email: string, passphrase: string, transactionXDR: string) => Promise<SignTransactionResponse>;
-  
-  // Utility functions
-  validatePassphrase: (passphrase: string) => { isValid: boolean; errors: string[] };
-  clearError: () => void;
-  refreshWallet: () => Promise<void>;
-  
-  // SDK instance (for advanced usage)
-  sdk: InvisibleWalletSDK | null;
-}
-
-interface CreateWalletOptions {
-  network?: NetworkType;
-  metadata?: Record<string, unknown>;
-}
-
-interface RecoverWalletOptions {
-  network?: NetworkType;
-}
-
-interface GetWalletOptions {
-  network?: NetworkType;
-}
+// Types are now imported from invisible-wallet-operations.ts
 
 /**
  * Main hook for Invisible Wallet functionality
@@ -360,7 +328,7 @@ export function useWalletBalance(
   email: string | null,
   network: NetworkType = 'testnet',
   refreshInterval: number = 30000 // 30 seconds
-) {
+): UseWalletBalanceReturn {
   const [balance, setBalance] = useState<WalletWithBalance | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -419,7 +387,7 @@ export function useWalletBalance(
 /**
  * Hook for passphrase validation with real-time feedback
  */
-export function usePassphraseValidation() {
+export function usePassphraseValidation(): UsePassphraseValidationReturn {
   const [passphrase, setPassphrase] = useState('');
   const [validation, setValidation] = useState<{
     isValid: boolean;
