@@ -2,7 +2,16 @@
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { X, Grip, Save, Proportions, Bell, Plus, Eye, Search } from "lucide-react";
+import {
+  X,
+  Grip,
+  Save,
+  Proportions,
+  Bell,
+  Plus,
+  Eye,
+  Search,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -123,11 +132,11 @@ export const WidgetTab = () => {
   };
 
   const handleRemove = (widgetId: string) => {
-    setWidgets(widgets.map(w => 
-      w.id === widgetId 
-        ? { ...w, status: "inactive" } 
-        : w
-    ));
+    setWidgets(
+      widgets.map((w) =>
+        w.id === widgetId ? { ...w, status: "inactive" } : w,
+      ),
+    );
   };
 
   const handleAddWidget = () => {
@@ -136,31 +145,32 @@ export const WidgetTab = () => {
 
   const handleSaveSettings = () => {
     if (selectedWidget) {
-      setWidgets(widgets.map(w =>
-        w.id === selectedWidget.id
-          ? { ...w, ...widgetSettings }
-          : w
-      ));
+      setWidgets(
+        widgets.map((w) =>
+          w.id === selectedWidget.id ? { ...w, ...widgetSettings } : w,
+        ),
+      );
       setIsConfigOpen(false);
     }
   };
 
   const handleAddFromMarketplace = (widget: Widget) => {
-    const existingWidget = widgets.find(w => w.id === widget.id);
+    const existingWidget = widgets.find((w) => w.id === widget.id);
     if (existingWidget) {
-      setWidgets(widgets.map(w =>
-        w.id === widget.id
-          ? { ...w, status: "active" }
-          : w
-      ));
+      setWidgets(
+        widgets.map((w) =>
+          w.id === widget.id ? { ...w, status: "active" } : w,
+        ),
+      );
     } else {
       setWidgets([...widgets, { ...widget, status: "active" }]);
     }
   };
 
-  const filteredMarketplaceWidgets = marketplaceWidgets.filter(widget =>
-    widget.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    widget.description.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredMarketplaceWidgets = marketplaceWidgets.filter(
+    (widget) =>
+      widget.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      widget.description.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const layoutTypeOptions = [
@@ -190,7 +200,7 @@ export const WidgetTab = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900/50 text-gray-200 p-6 space-y-8">
+    <div className="min-h-screen bg-transparent text-foreground p-6 space-y-8">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
@@ -203,8 +213,8 @@ export const WidgetTab = () => {
         </div>
         <div className="flex gap-3">
           <Button
-            variant="ghost"
-            className="text-gray-200 bg-gray-900 hover:bg-black"
+            variant="outline"
+            className="text-foreground bg-card hover:bg-accent"
           >
             <Eye className="w-4 h-4 mr-2" />
             Preview
@@ -223,21 +233,21 @@ export const WidgetTab = () => {
         <TabsList className="grid w-full grid-cols-3 bg-transparent">
           <TabsTrigger
             value="widgets"
-            className="data-[state=active]:bg-purple-900/50 data-[state=active]:text-white text-gray-400"
+            className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-500 text-muted-foreground"
           >
             <Proportions className="w-4 h-4 mr-2" />
             Widgets
           </TabsTrigger>
           <TabsTrigger
             value="custom-views"
-            className="data-[state=active]:bg-purple-900/50 data-[state=active]:text-white text-gray-400"
+            className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-500 text-muted-foreground"
           >
             <Eye className="w-4 h-4 mr-2" />
             Custom Views
           </TabsTrigger>
           <TabsTrigger
             value="price-alerts"
-            className="data-[state=active]:bg-purple-900/50 data-[state=active]:text-white text-gray-400"
+            className="data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-500 text-muted-foreground"
           >
             <Bell className="w-4 h-4 mr-2" />
             Price Alerts
@@ -261,20 +271,24 @@ export const WidgetTab = () => {
             {widgets.map((widget) => (
               <Card
                 key={widget.id}
-                className="bg-gray-900/40 border border-gray-800 rounded-xl shadow-lg transition-all hover:bg-gray-800/40 p-6"
+                className="bg-card/40 border border-border rounded-xl shadow-lg transition-all hover:bg-accent/40 p-6"
               >
                 <div className="space-y-4">
                   <div className="flex items-start justify-between">
                     <div className="flex gap-3">
-                      <span className="text-gray-400"><Grip className="w-4 h-4" /></span>
+                      <span className="text-gray-400">
+                        <Grip className="w-4 h-4" />
+                      </span>
                       <h3 className="text-lg font-medium">{widget.name}</h3>
                     </div>
                     <div>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        widget.status === "active" 
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-gray-500/20 text-gray-400"
-                      }`}>
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          widget.status === "active"
+                            ? "bg-green-500/20 text-green-400"
+                            : "bg-gray-500/20 text-gray-400"
+                        }`}
+                      >
                         {widget.status}
                       </span>
                     </div>
@@ -304,7 +318,7 @@ export const WidgetTab = () => {
             ))}
 
             {/* Add Widget Card */}
-            <Card className="bg-gray-900/10 border-2 border-dashed border-gray-700 rounded-xl shadow-lg transition-all hover:border-purple-500/50 hover:bg-gray-900/20 p-6 flex flex-col items-center justify-center text-center min-h-[200px] cursor-pointer group">
+            <Card className="bg-card/10 border-2 border-dashed border-border rounded-xl shadow-lg transition-all hover:border-purple-500/50 hover:bg-card/20 p-6 flex flex-col items-center justify-center text-center min-h-[200px] cursor-pointer group">
               <div className="w-12 h-12 flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
                 <Plus className="w-10 h-10 text-gray-500 group-hover:text-purple-400" />
               </div>
@@ -423,10 +437,12 @@ export const WidgetTab = () => {
                   id="refresh"
                   type="number"
                   value={widgetSettings.refreshInterval}
-                  onChange={(e) => setWidgetSettings({
-                    ...widgetSettings,
-                    refreshInterval: parseInt(e.target.value)
-                  })}
+                  onChange={(e) =>
+                    setWidgetSettings({
+                      ...widgetSettings,
+                      refreshInterval: parseInt(e.target.value),
+                    })
+                  }
                   className="bg-gray-800 border-gray-700"
                 />
               </div>
@@ -435,10 +451,12 @@ export const WidgetTab = () => {
                 <Switch
                   id="border"
                   checked={widgetSettings.showBorder}
-                  onCheckedChange={(checked) => setWidgetSettings({
-                    ...widgetSettings,
-                    showBorder: checked
-                  })}
+                  onCheckedChange={(checked) =>
+                    setWidgetSettings({
+                      ...widgetSettings,
+                      showBorder: checked,
+                    })
+                  }
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -446,10 +464,12 @@ export const WidgetTab = () => {
                 <Switch
                   id="animations"
                   checked={widgetSettings.enableAnimations}
-                  onCheckedChange={(checked) => setWidgetSettings({
-                    ...widgetSettings,
-                    enableAnimations: checked
-                  })}
+                  onCheckedChange={(checked) =>
+                    setWidgetSettings({
+                      ...widgetSettings,
+                      enableAnimations: checked,
+                    })
+                  }
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -457,10 +477,12 @@ export const WidgetTab = () => {
                 <Switch
                   id="notifications"
                   checked={widgetSettings.notifications}
-                  onCheckedChange={(checked) => setWidgetSettings({
-                    ...widgetSettings,
-                    notifications: checked
-                  })}
+                  onCheckedChange={(checked) =>
+                    setWidgetSettings({
+                      ...widgetSettings,
+                      notifications: checked,
+                    })
+                  }
                 />
               </div>
             </div>
@@ -487,7 +509,9 @@ export const WidgetTab = () => {
       <Dialog open={isMarketplaceOpen} onOpenChange={setIsMarketplaceOpen}>
         <DialogContent className="bg-gray-900 border-gray-800 max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-gray-200">Widget Marketplace</DialogTitle>
+            <DialogTitle className="text-gray-200">
+              Widget Marketplace
+            </DialogTitle>
             <DialogDescription className="text-gray-400">
               Browse and add new widgets to your dashboard
             </DialogDescription>

@@ -53,12 +53,9 @@ export function CreateWalletModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="w-full max-w-3xl bg-[#0A0B1E]/90 border border-gray-800 text-gray-300 rounded-xl shadow-lg backdrop-blur-none modal-scroll"
-      >
-        
+      <DialogContent className="w-full max-w-3xl bg-card/95 border border-border text-foreground rounded-xl shadow-lg backdrop-blur-none modal-scroll">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between text-white text-lg font-semibold">
+          <DialogTitle className="flex items-center justify-between text-foreground text-lg font-semibold">
             <span>Create New Wallet</span>
             <div className="flex items-center space-x-1">
               {[1, 2, 3].map((step) => (
@@ -66,7 +63,7 @@ export function CreateWalletModal({
                   key={step}
                   className={cn(
                     "w-2 h-2 rounded-full",
-                    step <= currentStep ? "bg-purple-400" : "bg-gray-700"
+                    step <= currentStep ? "bg-purple-400" : "bg-gray-700",
                   )}
                 />
               ))}
@@ -81,7 +78,7 @@ export function CreateWalletModal({
             variant="ghost"
             onClick={handleBack}
             disabled={currentStep === 1}
-            className="text-gray-400 hover:text-white"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted"
           >
             Back
           </Button>
@@ -94,7 +91,7 @@ export function CreateWalletModal({
                   (currentStep === 1 && !mnemonicSaved) ||
                   (currentStep === 2 && !isPasswordValid)
                 }
-                className="bg-purple-700 hover:bg-purple-800 text-white px-6 py-2 rounded-md transition-all shadow-md"
+                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-md transition-all shadow-md dark:bg-purple-700 dark:hover:bg-purple-800"
               >
                 Continue
               </Button>

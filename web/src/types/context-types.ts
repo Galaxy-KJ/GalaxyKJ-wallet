@@ -44,4 +44,12 @@ export interface SecureKeyContextValue {
 
   /** Clear the last error */
   clearError: () => void;
+
+  /**
+   * Backwards-compatible helpers used across UI flows.
+   * These are convenience methods around the internal ephemeral private key.
+   */
+  setPrivateKey: (privateKey: string) => void;
+  hasPrivateKey: () => boolean;
+  withPrivateKey: (fn: (privateKey: string) => Promise<void>) => Promise<boolean>;
 }

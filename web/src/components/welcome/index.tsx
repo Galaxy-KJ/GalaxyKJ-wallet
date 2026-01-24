@@ -88,7 +88,7 @@ export function WelcomeScreen() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full min-h-screen bg-[#0A0A1A] text-white overflow-hidden"
+      className="relative w-full min-h-screen bg-background text-foreground overflow-hidden"
     >
       <StarBackground />
       <ShootingStarsEffect />

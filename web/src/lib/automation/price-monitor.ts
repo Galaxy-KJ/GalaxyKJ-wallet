@@ -174,4 +174,6 @@ export class PriceMonitor2 {
   }
 }
 
-export const priceMonitor = new PriceMonitor();
+// NOTE: `priceMonitor` is used by `BackgroundProcessor` (client-side/dev helper) which expects
+// `subscribe()` + `getLatest()` methods. Those are implemented by `PriceMonitor2`.
+export const priceMonitor = new PriceMonitor2();

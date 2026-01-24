@@ -1,53 +1,53 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import { Menu } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useRef, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type MenuOption = {
-  label: string
-  icon: React.ReactNode
-  href: string
-  available: boolean
-}
+  label: string;
+  icon: React.ReactNode;
+  href: string;
+  available: boolean;
+};
 
 interface MobileMenuProps {
-  options: MenuOption[]
+  options: MenuOption[];
 }
 
 export function MobileMenu({ options }: MobileMenuProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const [open, setOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const router = useRouter();
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setOpen(false)
+        setOpen(false);
       }
-    }
+    };
 
     if (open) {
-      document.addEventListener("mousedown", handleClickOutside)
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [open])
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [open]);
 
   const isActiveRoute = (href: string) => {
-    return pathname === href
-  }
+    return pathname === href;
+  };
 
   const handleOptionClick = (option: MenuOption) => {
     if (option.available) {
-      router.push(option.href)
-      setOpen(false)
+      router.push(option.href);
+      setOpen(false);
     }
-  }
+  };
 
   return (
     <div className="relative z-50" ref={menuRef}>
@@ -56,7 +56,7 @@ export function MobileMenu({ options }: MobileMenuProps) {
       </Button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-64 rounded-lg border border-gray-800 bg-gray-900/70 backdrop-blur-sm shadow-xl p-4 space-y-2">
+        <div className="absolute right-0 mt-2 w-64 rounded-lg border border-border bg-card/70 backdrop-blur-sm shadow-xl p-4 space-y-2">
           {options.map((option, index) => (
             <button
               key={index}
@@ -64,10 +64,10 @@ export function MobileMenu({ options }: MobileMenuProps) {
               disabled={!option.available}
               className={`w-full flex items-center gap-3 p-2 rounded-md transition-all duration-200 ${
                 !option.available
-                  ? "bg-gray-800/30 text-gray-500 cursor-not-allowed opacity-50"
+                  ? "bg-muted/30 text-muted-foreground cursor-not-allowed opacity-50"
                   : isActiveRoute(option.href)
-                  ? "bg-purple-900/70 text-purple-300 font-medium scale-105 shadow-lg"
-                  : "bg-gray-800/50 hover:bg-purple-900/50 text-purple-300 font-medium hover:scale-105"
+                    ? "bg-purple-500/10 text-purple-500 font-medium scale-105 shadow-lg"
+                    : "bg-accent/50 hover:bg-purple-500/20 text-purple-400 font-medium hover:scale-105"
               }`}
               title={!option.available ? "Coming soon" : undefined}
             >
@@ -81,5 +81,5 @@ export function MobileMenu({ options }: MobileMenuProps) {
         </div>
       )}
     </div>
-  )
+  );
 }

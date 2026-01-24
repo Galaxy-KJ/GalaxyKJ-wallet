@@ -34,7 +34,7 @@ function CryptoGlossary() {
           <Search className="absolute left-3 text-gray-400 h-4 w-4" />
           <Input
             placeholder="Search terms or definitions..."
-            className="pl-10 bg-gray-900/50 border-gray-800 text-white"
+            className="pl-10 bg-card/50 border-border text-foreground"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -79,7 +79,7 @@ const Filters = ({ filters, value, onSelect }: FiltersProps) => {
       {filters.map((filter) => (
         <Button
           key={filter.value}
-          className={`border-gray-700 bg-gray-800/50 hover:bg-gray-800 text-gray-300 cursor-pointer
+          className={`border-border bg-card/50 hover:bg-card text-muted-foreground cursor-pointer
           ${value === filter.value && "bg-white text-black hover:bg-white/80"}`}
           onClick={() => onSelect(filter.value)}
         >
@@ -101,16 +101,18 @@ const GlossaryItem = ({ item }: { item: (typeof glossaryData)[number] }) => {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.01 }}
       transition={{ duration: 0.3 }}
-      className="bg-[#13182A] backdrop-blur-md border-[1px] border-[#374151]
-      rounded-lg p-4 space-y-4"
+      className="bg-card backdrop-blur-md border-[1px] border-border
+      hover:border-purple-500/50 transition-colors cursor-pointer group shadow-lg"
     >
-      <div className="flex justify-between">
-        <h1 className="text-base font-semibold text-white">{item.term}</h1>
-        <span className="border border-white/30 text-white/80 rounded-full px-2 py-0.5 text-xs capitalize">
+      <div className="flex items-center justify-between mb-2">
+        <h1 className="text-base font-semibold text-foreground">{item.term}</h1>
+        <span className="border border-border text-muted-foreground rounded-full px-2 py-0.5 text-xs capitalize">
           {categoryName}
         </span>
       </div>
-      <p className="text-sm font-medium text-white/70">{item.definition}</p>
+      <p className="text-sm font-medium text-muted-foreground">
+        {item.definition}
+      </p>
     </motion.div>
   );
 };

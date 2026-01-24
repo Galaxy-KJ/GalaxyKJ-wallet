@@ -11,7 +11,7 @@ import Link from "next/link";
 
 export default function Transactions() {
   return (
-    <div className="min-h-screen bg-[#0A0B1E] text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <StarBackground />
       <div className="relative z-10">
         <div className="max-w-[1400px] mx-auto px-8 py-6">

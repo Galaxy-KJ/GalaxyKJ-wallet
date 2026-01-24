@@ -204,7 +204,7 @@ export function AutomationCenter() {
   };
 
   return (
-    <div className="relative w-full min-h-screen bg-[#0D0D22] text-white overflow-hidden">
+    <div className="relative w-full min-h-screen bg-background text-foreground overflow-hidden">
       <StarBackground />
 
       <div className="relative z-10 container mx-auto px-4 py-6">
@@ -213,7 +213,7 @@ export function AutomationCenter() {
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-white hover:bg-white/5"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent/50"
               onClick={() => router.push("/dashboard")}
             >
               <ArrowLeft className="h-5 w-5" />

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { useWalletStore } from "@/store/wallet-store";
 import { useTransactionSearch } from "@/hooks/use-transaction-search";
 import { SearchResults } from "@/components/ui/search-results";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 interface HeaderProps {
   onCreateWallet: () => void;
@@ -131,7 +132,7 @@ export function Header({ onCreateWallet, onLogin }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-md border-b border-gray-800 py-3 ">
+    <header className="sticky top-0 z-50 w-full backdrop-blur-md border-b border-border bg-background/70 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div
           className="flex items-center gap-2 cursor-pointer"
@@ -157,10 +158,10 @@ export function Header({ onCreateWallet, onLogin }: HeaderProps) {
                 key={option.label}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
                   !option.available
-                    ? "text-gray-500 cursor-not-allowed opacity-50"
+                    ? "text-muted-foreground cursor-not-allowed opacity-50"
                     : isActiveRoute(option.href)
-                    ? "text-white bg-purple-900/30 font-medium shadow-lg"
-                    : "text-gray-300 hover:text-white hover:bg-gray-800/50"
+                    ? "text-foreground bg-purple-500/10 font-medium shadow-lg"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                 }`}
                 onClick={() => option.available && router.push(option.href)}
                 disabled={!option.available}
@@ -175,9 +176,10 @@ export function Header({ onCreateWallet, onLogin }: HeaderProps) {
 
         {/* Right Section - Search & Auth */}
         <div className="flex items-center gap-4 flex-shrink-0">
+          <ThemeToggle />
           {/* Search Bar - Hidden on smaller screens */}
           <div className="hidden xl:block relative" ref={searchRef}>
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search transactions..."
               value={searchQuery}
@@ -185,7 +187,7 @@ export function Header({ onCreateWallet, onLogin }: HeaderProps) {
               onKeyDown={handleSearchKeyDown}
               onFocus={handleSearchFocus}
               onBlur={handleSearchBlur}
-              className={`pl-10 bg-gray-900/50 border-gray-800 focus:border-purple-500 text-white rounded-full transition-all ${
+              className={`pl-10 rounded-full transition-all ${
                 searchFocused ? "ring-1 ring-purple-500/50" : ""
               }`}
             />
@@ -211,7 +213,7 @@ export function Header({ onCreateWallet, onLogin }: HeaderProps) {
             <Button
               variant="outline"
               onClick={handleLogout}
-              className="hidden lg:flex border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 hover:bg-gray-800/50"
+              className="hidden lg:flex"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Logout

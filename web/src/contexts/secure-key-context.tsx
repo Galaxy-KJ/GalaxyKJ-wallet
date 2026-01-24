@@ -56,6 +56,35 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
 
   const clearError = useCallback(() => setError(null), []);
 
+  // Backwards-compatible helpers used by some UI flows.
+  const setPrivateKey = useCallback((privateKey: string) => {
+    privateKeyRef.current = privateKey;
+    setIsLocked(false);
+  }, []);
+
+  const hasPrivateKey = useCallback(() => {
+    return !isLocked && privateKeyRef.current != null;
+  }, [isLocked]);
+
+  const withPrivateKey = useCallback(
+    async (fn: (privateKey: string) => Promise<void>) => {
+      clearError();
+      if (isLocked || privateKeyRef.current == null) return false;
+      if (typeof privateKeyRef.current !== "string") return false;
+      setIsLoading(true);
+      try {
+        await fn(privateKeyRef.current);
+        return true;
+      } catch (e) {
+        setError(toErrorMessage(e));
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [clearError, isLocked]
+  );
+
   const encrypt: EncryptFn = useCallback(
     async (data) => {
       setIsLoading(true);
@@ -172,6 +201,9 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
       unlock,
       rotate,
       clearError,
+      setPrivateKey,
+      hasPrivateKey,
+      withPrivateKey,
     }),
     [
       isLocked,
@@ -185,6 +217,9 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
       unlock,
       rotate,
       clearError,
+      setPrivateKey,
+      hasPrivateKey,
+      withPrivateKey,
     ]
   );
 

@@ -7,7 +7,7 @@ import { StarBackground } from "@/components/effects/star-background"
 
 // Dynamic import to prevent SSR issues with SecureKeyProvider
 const CryptoConverter = dynamic(
-  () => import("@/components/ cryptocurrency-converter/crypto-converter"),
+  () => import("@/components/cryptocurrency-converter/crypto-converter"),
   { ssr: false }
 )
 

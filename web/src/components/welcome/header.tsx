@@ -5,6 +5,7 @@ import Image from "next/image";
 import { OutWalletButton } from "@/components/welcome/auth-wallet-button";
 import { LanguageToggle } from "@/components/ui/language-toggle";
 import { useClientTranslation } from "@/contexts/language-provider";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 interface HeaderProps {
   onGetStarted: () => void;
@@ -37,6 +38,7 @@ export function Header({ onGetStarted, isLoading }: HeaderProps) {
         transition={{ delay: 0.3, duration: 0.5 }}
         className="flex items-center gap-4"
       >
+        <ThemeToggle />
         <LanguageToggle />
         <OutWalletButton
           onClick={onGetStarted}

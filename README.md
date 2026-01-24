@@ -56,6 +56,14 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 
 ---
 
+## 🎨 Theme (Dark / Light)
+
+- **Toggle**: Use the theme toggle in the header to switch between dark and light mode.
+- **Persistence**: The selected theme is saved in `localStorage` under the key `galaxy-theme`.
+- **Default**: If no saved preference exists, the app follows the system theme (`prefers-color-scheme`).
+
+---
+
 ## 🤝 Contributing
 
 We appreciate all contributions to improve **Galaxy Smart Wallet**! Before you start, please check our **[Contribution Guidelines](docs/CONTRIBUTORS_GUIDELINE.md)** to follow best practices for branching, commits, and collaboration.
