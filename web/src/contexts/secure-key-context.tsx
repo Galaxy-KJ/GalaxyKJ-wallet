@@ -10,6 +10,7 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
+import { Keypair } from "@stellar/stellar-sdk";
 import type {
   SecureKeyContextValue,
   EncryptFn,
@@ -187,6 +188,27 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
       setIsLoading(false);
     }
   }, [clearError]);
+
+  const setPrivateKey = useCallback((privateKey: string) => {
+    try {
+      privateKeyRef.current = privateKey;
+      setIsLocked(false);
+      // Derive public key from private key
+      try {
+        const keypair = Keypair.fromSecret(privateKey);
+        setPublicKey(keypair.publicKey());
+      } catch (e) {
+        // If key derivation fails, just set the private key
+        console.warn("Failed to derive public key from private key:", e);
+      }
+    } catch (e) {
+      setError(toErrorMessage(e));
+    }
+  }, [setPublicKey]);
+
+  const hasPrivateKey = useCallback(() => {
+    return privateKeyRef.current !== null;
+  }, []);
 
   const value: SecureKeyContextValue = useMemo(
     () => ({
