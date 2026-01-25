@@ -10,7 +10,7 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import { Keypair } from "@stellar/stellar-sdk";
+
 import type {
   SecureKeyContextValue,
   EncryptFn,
@@ -30,7 +30,7 @@ function toErrorMessage(err: unknown): string {
 }
 
 const SecureKeyContext = createContext<SecureKeyContextValue | undefined>(
-  undefined
+  undefined,
 );
 
 type ProviderProps = {
@@ -49,7 +49,7 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
   const [error, setError] = useState<CtxError>(null);
   const [keyId, setKeyId] = useState<string | null>(initial?.keyId ?? null);
   const [publicKey, setPublicKey] = useState<string | null>(
-    initial?.publicKey ?? null
+    initial?.publicKey ?? null,
   );
 
   // Ephemeral private key material (never put in React state)
@@ -83,7 +83,7 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
         setIsLoading(false);
       }
     },
-    [clearError, isLocked]
+    [clearError, isLocked],
   );
 
   const encrypt: EncryptFn = useCallback(
@@ -107,7 +107,7 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
         setIsLoading(false);
       }
     },
-    [clearError]
+    [clearError],
   );
 
   const decrypt: DecryptFn = useCallback(
@@ -129,7 +129,7 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
         setIsLoading(false);
       }
     },
-    [clearError]
+    [clearError],
   );
 
   const lock = useCallback(async () => {
@@ -168,7 +168,7 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
         setIsLoading(false);
       }
     },
-    [clearError, keyId, publicKey]
+    [clearError, keyId, publicKey],
   );
 
   const rotate = useCallback(async () => {
@@ -188,27 +188,6 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
       setIsLoading(false);
     }
   }, [clearError]);
-
-  const setPrivateKey = useCallback((privateKey: string) => {
-    try {
-      privateKeyRef.current = privateKey;
-      setIsLocked(false);
-      // Derive public key from private key
-      try {
-        const keypair = Keypair.fromSecret(privateKey);
-        setPublicKey(keypair.publicKey());
-      } catch (e) {
-        // If key derivation fails, just set the private key
-        console.warn("Failed to derive public key from private key:", e);
-      }
-    } catch (e) {
-      setError(toErrorMessage(e));
-    }
-  }, [setPublicKey]);
-
-  const hasPrivateKey = useCallback(() => {
-    return privateKeyRef.current !== null;
-  }, []);
 
   const value: SecureKeyContextValue = useMemo(
     () => ({
@@ -242,7 +221,7 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
       setPrivateKey,
       hasPrivateKey,
       withPrivateKey,
-    ]
+    ],
   );
 
   return (
@@ -256,7 +235,7 @@ export function useSecureKey(): SecureKeyContextValue {
   const ctx = useContext(SecureKeyContext);
   if (!ctx) {
     throw new Error(
-      "useSecureKey must be used within a SecureKeyProvider (context unavailable)."
+      "useSecureKey must be used within a SecureKeyProvider (context unavailable).",
     );
   }
   return ctx;

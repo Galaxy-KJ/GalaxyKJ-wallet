@@ -6,10 +6,10 @@ import { StarBackground } from "@/components/effects/star-background";
 import { Header } from "@/components/layout/header/header";
 import { useWalletStore } from "@/store/wallet-store";
 import { useWalletSync } from "@/hooks/use-wallet-sync";
-import { Button } from "@/components/ui/button";
 import { useCustomViewStore } from "@/store/custom-view-store";
 import { LayoutEngine } from "@/lib/layout/layout-engine";
 import { WidgetRegistry } from "@/lib/widgets/widget-registry";
+import { BalanceDisplay } from "@/components/dashboard/balance-display";
 
 export function Wallet() {
   const { publicKey, account, balance, transactions, connectionStatus, syncWallet, networkConfig } = useWalletStore();
@@ -58,16 +58,39 @@ export function Wallet() {
       <StarBackground />
       <div className="relative z-10 container mx-auto px-4 py-6">
         <Header onCreateWallet={handleCreateWallet} onLogin={handleLogin} />
-        <div className="mb-4 flex items-center justify-between bg-gray-900/50 rounded-lg p-3">
+        
+        {/* Wallet Summary Card (main focal point) */}
+        <div className="mb-6">
+          <BalanceDisplay />
+        </div>
+
+        {/* Connection status (secondary) */}
+        <div className="mb-6 flex items-center justify-between bg-gray-900/50 rounded-lg p-3">
           <div className="flex items-center space-x-3">
-            <div className={`w-3 h-3 rounded-full ${isConnected ? "bg-green-500" : error ? "bg-red-500" : "bg-yellow-500"}`} />
+            <div
+              className={`w-3 h-3 rounded-full ${
+                isConnected
+                  ? "bg-green-500"
+                  : error
+                    ? "bg-red-500"
+                    : "bg-yellow-500"
+              }`}
+            />
             <span className="text-sm">
-              {isLoading ? "Syncing..." : isConnected ? `Connected to ${networkConfig.type}` : error ? "Connection failed" : "Connecting..."}
+              {isLoading
+                ? "Syncing..."
+                : isConnected
+                  ? `Connected to ${networkConfig.type}`
+                  : error
+                    ? "Connection failed"
+                    : "Connecting..."}
             </span>
           </div>
           <div className="flex items-center space-x-2">
             {connectionStatus.lastSyncTime && (
-              <span className="text-xs text-gray-400">Last sync: {connectionStatus.lastSyncTime.toLocaleTimeString()}</span>
+              <span className="text-xs text-gray-400">
+                Last sync: {connectionStatus.lastSyncTime.toLocaleTimeString()}
+              </span>
             )}
           </div>
         </div>

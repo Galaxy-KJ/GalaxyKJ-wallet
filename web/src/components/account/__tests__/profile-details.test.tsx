@@ -161,8 +161,9 @@ describe("ProfileDetails", () => {
       );
       
       if (publicKeyCopyButton) {
+        const spy = jest.spyOn(navigator.clipboard, "writeText");
         await user.click(publicKeyCopyButton);
-        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(mockPublicKey);
+        expect(spy).toHaveBeenCalledWith(mockPublicKey);
       }
     });
   });
