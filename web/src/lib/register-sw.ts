@@ -1,5 +1,7 @@
 // Registro del Service Worker
 export function registerServiceWorker() {
+  // Avoid service worker during development: it can cache Next dev chunks and cause blank pages / hydration errors.
+  if (process.env.NODE_ENV !== "production") return;
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker
