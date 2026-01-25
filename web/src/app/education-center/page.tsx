@@ -39,7 +39,7 @@ export default function EducationCenterPage() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#0A0B1E] relative">
+    <div className="w-full min-h-screen bg-background relative">
       <StarBackground />
       <div className="w-full min-h-screen relative z-10 flex flex-col items-start justify-start px-4 sm:px-6 py-8 gap-6">
         <div className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -49,7 +49,7 @@ export default function EducationCenterPage() {
           <input
             type="search"
             placeholder="Search resources"
-            className="border border-gray-700 bg-gray-800/50 px-5 py-2 rounded-lg text-white w-full sm:w-auto"
+            className="border border-input bg-background/50 px-5 py-2 rounded-lg text-foreground w-full sm:w-auto"
           />
         </div>
 

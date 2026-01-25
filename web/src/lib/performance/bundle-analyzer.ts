@@ -466,12 +466,12 @@ export class GalaxyBundleAnalyzer {
       
       // Calculate trend
       const recent = totalSize.slice(-5); // Last 5 measurements
-      const average = recent.reduce((sum, size) => sum + size, 0) / recent.length;
+      const average = recent.reduce((sum: number, size: number) => sum + size, 0) / recent.length;
       const firstHalf = recent.slice(0, Math.floor(recent.length / 2));
       const secondHalf = recent.slice(Math.floor(recent.length / 2));
       
-      const firstAvg = firstHalf.reduce((sum, size) => sum + size, 0) / firstHalf.length;
-      const secondAvg = secondHalf.reduce((sum, size) => sum + size, 0) / secondHalf.length;
+      const firstAvg = firstHalf.reduce((sum: number, size: number) => sum + size, 0) / firstHalf.length;
+      const secondAvg = secondHalf.reduce((sum: number, size: number) => sum + size, 0) / secondHalf.length;
       
       let trend: 'increasing' | 'decreasing' | 'stable' = 'stable';
       const threshold = average * 0.05; // 5% threshold

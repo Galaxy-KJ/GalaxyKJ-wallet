@@ -31,6 +31,8 @@ Object.defineProperty(global, 'crypto', {
 
 // Mock navigator.clipboard
 Object.defineProperty(global.navigator, 'clipboard', {
+  configurable: true,
+  writable: true,
   value: {
     writeText: jest.fn(() => Promise.resolve()),
     readText: jest.fn(() => Promise.resolve('')),

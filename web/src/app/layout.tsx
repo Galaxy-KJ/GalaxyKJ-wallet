@@ -7,8 +7,9 @@ import { SecureKeyProvider } from "@/contexts/secure-key-context";
 import { AnalyticsProvider } from "@/components/ui/analytics-provider";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Suspense, type ReactNode } from "react";
-import ClientShell from "@/components/root/client-shell";
 import { ClientLayoutComponents } from "@/components/layout/client-layout";
+import Script from "next/script";
+import { ThemeProvider } from "@/contexts/theme-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,8 +39,26 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning={true}>
       <head>
+        <Script id="theme-init" strategy="beforeInteractive">{`
+          (function () {
+            try {
+              var key = "galaxy-theme";
+              var stored = localStorage.getItem(key);
+              var theme =
+                stored === "dark" || stored === "light"
+                  ? stored
+                  : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+              var root = document.documentElement;
+              if (theme === "dark") root.classList.add("dark");
+              else root.classList.remove("dark");
+              root.style.colorScheme = theme;
+            } catch (e) {
+              // no-op: if storage is blocked or unavailable, fall back to default styles
+            }
+          })();
+        `}</Script>
         {/* Preload critical resources */}
         <link
           rel="preload"
@@ -54,28 +73,32 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased relative bg-[#0A0B1E] text-white`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased relative bg-background text-foreground`}
         suppressHydrationWarning={true}
       >
         <ErrorBoundary>
           <SecureKeyProvider>
             <AnalyticsProvider>
               <LanguageProvider>
-                <Suspense fallback={<div className="fixed inset-0 bg-[#0A0B1E]" />}>
-                  <StarBackground />
-                </Suspense>
-                <main className="relative z-10 min-h-screen">
-                  <Suspense fallback={
-                    <div className="flex items-center justify-center min-h-screen">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-                    </div>
-                  }>
-                    {children}
+                <ThemeProvider>
+                  <Suspense fallback={<div className="fixed inset-0 bg-background" />}>
+                    <StarBackground />
                   </Suspense>
-                </main>
-                <Suspense fallback={null}>
-                  <ClientLayoutComponents />
-                </Suspense>
+                  <main className="relative z-10 min-h-screen">
+                    <Suspense
+                      fallback={
+                        <div className="flex items-center justify-center min-h-screen">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                        </div>
+                      }
+                    >
+                      {children}
+                    </Suspense>
+                  </main>
+                  <Suspense fallback={null}>
+                    <ClientLayoutComponents />
+                  </Suspense>
+                </ThemeProvider>
               </LanguageProvider>
             </AnalyticsProvider>
           </SecureKeyProvider>

@@ -121,15 +121,15 @@ export function TransactionHistory() {
   // Show message when no wallet is connected
   if (!publicKey || !isValidStellarPublicKey(publicKey)) {
     return (
-      <Card className="bg-[#0F1225] border-gray-800">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium text-gray-300">
+          <CardTitle className="text-lg font-medium text-muted-foreground">
             Transaction History
           </CardTitle>
         </CardHeader>
         <CardContent className="pb-4">
           <div className="text-center py-8">
-            <p className="text-gray-500 text-sm">
+            <p className="text-muted-foreground text-sm">
               Connect a wallet to view transaction history
             </p>
           </div>
@@ -139,15 +139,15 @@ export function TransactionHistory() {
   }
 
   return (
-    <Card className="bg-[#0F1225] border-gray-800">
+    <Card className="bg-card border-border">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg font-medium text-gray-300">
+        <CardTitle className="text-lg font-medium text-muted-foreground">
           Transaction History
         </CardTitle>
         <Button
           variant="outline"
           size="sm"
-          className="h-8 border-gray-700 bg-gray-800/50 hover:bg-gray-800 text-gray-300"
+          className="h-8"
         >
           <Filter className="h-3.5 w-3.5 mr-1" />
           Filter
@@ -162,8 +162,8 @@ export function TransactionHistory() {
               size="sm"
               className={`rounded-full px-3 py-1 text-xs ${
                 filter === type
-                  ? "bg-purple-900/50 text-white"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800/50"
+                  ? "bg-purple-500/10 text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
               }`}
               onClick={() => setFilter(type as "all" | TransactionType)}
             >
@@ -182,14 +182,14 @@ export function TransactionHistory() {
           {filteredTransactions.map((tx) => (
             <div
               key={tx.id}
-              className="p-3 rounded-lg bg-[#1F2937] bg-opacity-20 hover:bg-opacity-30 transition-all duration-200 cursor-pointer flex items-center justify-between group"
+              className="p-3 rounded-lg bg-accent/30 hover:bg-accent/40 transition-all duration-200 cursor-pointer flex items-center justify-between group"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#1F2937] bg-opacity-50 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-accent/60 flex items-center justify-center">
                   {getTransactionIcon(tx.type)}
                 </div>
                 <div>
-                  <div className="font-medium text-gray-200">
+                  <div className="font-medium text-foreground">
                     {tx.type === "swap" ? (
                       <span>
                         {tx.assetFrom} → {tx.assetTo}
@@ -200,14 +200,14 @@ export function TransactionHistory() {
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-muted-foreground">
                     {formatDate(tx.date)}
                   </div>
                 </div>
               </div>
 
               <div className="text-right">
-                <div className="font-medium text-gray-200">
+                <div className="font-medium text-foreground">
                   {tx.type === "swap" ? (
                     <span>
                       {tx.amountFrom} → {tx.amountTo}
