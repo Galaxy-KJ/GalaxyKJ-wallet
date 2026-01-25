@@ -16,15 +16,64 @@ export default function StrategySimulator() {
     setIsSimulating(true);
     try {
       // Mock simulation - replace with actual client-side calculation
+      const months = Math.max(1, Math.floor(parameters.timeHorizon));
+      const monthlyReturn = 0.0083; // ~0.83% (decimal) mock return per month
+      const monthlyReturns = Array.from({ length: months }, () => monthlyReturn);
+
+      const initialValue = parameters.initialInvestment;
+      const portfolioValueHistory = monthlyReturns.map((r, idx) => {
+        const value = initialValue * Math.pow(1 + r, idx + 1);
+        const d = new Date();
+        d.setMonth(d.getMonth() - (months - (idx + 1)));
+        return {
+          timestamp: d.getTime(),
+          date: d.toISOString().slice(0, 10),
+          value,
+          return: r,
+        };
+      });
+
+      const finalValue = portfolioValueHistory[portfolioValueHistory.length - 1]?.value ?? initialValue;
+      const totalReturn = ((finalValue - initialValue) / initialValue) * 100;
+      const annualizedReturn = (totalReturn / Math.max(1, months)) * 12;
+
+      const winningMonths = monthlyReturns.filter((r) => r > 0).length;
+      const losingMonths = monthlyReturns.filter((r) => r < 0).length;
+
+      const assetAllocationDetails = Object.entries(parameters.assetAllocation).map(([asset, allocation]) => {
+        // allocation is assumed to be percentage (0-100)
+        const pct = allocation / 100;
+        return {
+          asset,
+          allocation,
+          value: finalValue * pct,
+          return: totalReturn * pct,
+        };
+      });
+
       const result: SimulationResult = {
-        finalValue: parameters.initialInvestment * (1 + (parameters.timeHorizon / 12) * 0.1),
-        totalReturn: (parameters.timeHorizon / 12) * 10,
-        annualizedReturn: 10,
+        finalValue,
+        initialValue,
+        totalContributions: initialValue,
+
+        totalReturn,
+        annualizedReturn,
+
         volatility: parameters.riskTolerance / 5,
         maxDrawdown: parameters.riskTolerance / 10,
         sharpeRatio: 1.2,
+
+        monthlyReturns,
+        portfolioValueHistory,
+
         assetAllocation: parameters.assetAllocation,
-        monthlyReturns: Array(parameters.timeHorizon).fill(0.83)
+        assetAllocationDetails,
+
+        winningMonths,
+        losingMonths,
+
+        simulationDate: new Date().toISOString(),
+        parameters,
       };
       setSimulationData(result);
       return result;
@@ -38,7 +87,7 @@ export default function StrategySimulator() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 p-4 sm:p-6 relative">
+    <div className="min-h-screen bg-background p-4 sm:p-6 relative">
       <StarBackground />
       <div className="max-w-7xl mx-auto relative z-10">
         <motion.div 
@@ -49,7 +98,7 @@ export default function StrategySimulator() {
         >
           <h1 className="text-3xl sm:text-4xl font-bold relative inline-block">
             <span className="absolute -inset-1 bg-gradient-to-r from-blue-400/20 to-purple-500/20 blur-xl -z-10"></span>
-            <span className="relative text-white">Strategy Simulator</span>
+            <span className="relative text-foreground">Strategy Simulator</span>
           </h1>
         </motion.div>
         

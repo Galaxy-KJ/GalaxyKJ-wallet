@@ -30,6 +30,11 @@ export function WelcomeScreen() {
   const [isCreating] = useState(false)
 
   const { setPrivateKey } = useSecureKey()
+  
+  // Safety check - this should never happen if context is properly set up
+  if (!setPrivateKey || typeof setPrivateKey !== 'function') {
+    console.error('setPrivateKey is not available from SecureKeyContext', { setPrivateKey })
+  }
   const setPublicKey = useWalletStore((state) => state.setPublicKey)
 
   const handleWalletCreated = () => {
@@ -42,7 +47,12 @@ export function WelcomeScreen() {
     const publicKey = keypair.publicKey()
 
     // Set the private key in the secure context
-    setPrivateKey(decryptedPrivateKey)
+    if (setPrivateKey && typeof setPrivateKey === 'function') {
+      setPrivateKey(decryptedPrivateKey)
+    } else {
+      console.error('Cannot set private key: setPrivateKey is not a function')
+      throw new Error('Secure key context is not properly initialized')
+    }
     
     // Set the public key in the wallet store
     setPublicKey(publicKey)
@@ -88,7 +98,7 @@ export function WelcomeScreen() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full min-h-screen bg-[#0A0A1A] text-white overflow-hidden"
+      className="relative w-full min-h-screen bg-background text-foreground overflow-hidden"
     >
       <StarBackground />
       <ShootingStarsEffect />

@@ -462,7 +462,7 @@ export function useDebouncedMemo<T>(
   options: MemoizationOptions = {}
 ): T | null {
   const [debouncedValue, setDebouncedValue] = useState<T | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const memoizedFactory = useAdvancedMemo(factory, deps, options);
 
@@ -502,9 +502,9 @@ export function useGlobalCache<T>(
   options: MemoizationOptions = {}
 ): T {
   const globalCacheRef = useRef<MemoCache<T>>(
-    typeof window !== 'undefined' 
-      ? (window.__GALAXY_GLOBAL_CACHE__ ||= {})
-      : {}
+    (typeof window !== 'undefined' 
+      ? (((window as any).__GALAXY_GLOBAL_CACHE__ ||= {}) as MemoCache<T>)
+      : ({} as MemoCache<T>))
   );
 
   const {

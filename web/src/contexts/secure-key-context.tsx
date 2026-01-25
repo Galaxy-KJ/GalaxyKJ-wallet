@@ -10,6 +10,7 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
+
 import type {
   SecureKeyContextValue,
   EncryptFn,
@@ -29,7 +30,7 @@ function toErrorMessage(err: unknown): string {
 }
 
 const SecureKeyContext = createContext<SecureKeyContextValue | undefined>(
-  undefined
+  undefined,
 );
 
 type ProviderProps = {
@@ -48,13 +49,42 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
   const [error, setError] = useState<CtxError>(null);
   const [keyId, setKeyId] = useState<string | null>(initial?.keyId ?? null);
   const [publicKey, setPublicKey] = useState<string | null>(
-    initial?.publicKey ?? null
+    initial?.publicKey ?? null,
   );
 
   // Ephemeral private key material (never put in React state)
   const privateKeyRef = useRef<CryptoKey | string | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
+
+  // Backwards-compatible helpers used by some UI flows.
+  const setPrivateKey = useCallback((privateKey: string) => {
+    privateKeyRef.current = privateKey;
+    setIsLocked(false);
+  }, []);
+
+  const hasPrivateKey = useCallback(() => {
+    return !isLocked && privateKeyRef.current != null;
+  }, [isLocked]);
+
+  const withPrivateKey = useCallback(
+    async (fn: (privateKey: string) => Promise<void>) => {
+      clearError();
+      if (isLocked || privateKeyRef.current == null) return false;
+      if (typeof privateKeyRef.current !== "string") return false;
+      setIsLoading(true);
+      try {
+        await fn(privateKeyRef.current);
+        return true;
+      } catch (e) {
+        setError(toErrorMessage(e));
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [clearError, isLocked],
+  );
 
   const encrypt: EncryptFn = useCallback(
     async (data) => {
@@ -77,7 +107,7 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
         setIsLoading(false);
       }
     },
-    [clearError]
+    [clearError],
   );
 
   const decrypt: DecryptFn = useCallback(
@@ -99,7 +129,7 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
         setIsLoading(false);
       }
     },
-    [clearError]
+    [clearError],
   );
 
   const lock = useCallback(async () => {
@@ -138,7 +168,7 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
         setIsLoading(false);
       }
     },
-    [clearError, keyId, publicKey]
+    [clearError, keyId, publicKey],
   );
 
   const rotate = useCallback(async () => {
@@ -172,6 +202,9 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
       unlock,
       rotate,
       clearError,
+      setPrivateKey,
+      hasPrivateKey,
+      withPrivateKey,
     }),
     [
       isLocked,
@@ -185,7 +218,10 @@ export function SecureKeyProvider({ children, initial }: ProviderProps) {
       unlock,
       rotate,
       clearError,
-    ]
+      setPrivateKey,
+      hasPrivateKey,
+      withPrivateKey,
+    ],
   );
 
   return (
@@ -199,7 +235,7 @@ export function useSecureKey(): SecureKeyContextValue {
   const ctx = useContext(SecureKeyContext);
   if (!ctx) {
     throw new Error(
-      "useSecureKey must be used within a SecureKeyProvider (context unavailable)."
+      "useSecureKey must be used within a SecureKeyProvider (context unavailable).",
     );
   }
   return ctx;

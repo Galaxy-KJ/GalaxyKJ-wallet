@@ -31,6 +31,8 @@ Object.defineProperty(global, 'crypto', {
 
 // Mock navigator.clipboard
 Object.defineProperty(global.navigator, 'clipboard', {
+  configurable: true,
+  writable: true,
   value: {
     writeText: jest.fn(() => Promise.resolve()),
     readText: jest.fn(() => Promise.resolve('')),
@@ -45,3 +47,7 @@ global.console = {
   error: jest.fn(),
   info: jest.fn(),
 }
+
+// Mock environment variables for Supabase
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'

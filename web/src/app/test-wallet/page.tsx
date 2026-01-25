@@ -64,16 +64,16 @@ export default function TestWalletPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
+    <div className="min-h-screen bg-background text-foreground p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">🔍 Wallet Database Test</h1>
         
-        <div className="bg-gray-800 p-6 rounded-lg mb-6">
+        <div className="bg-card border border-border p-6 rounded-lg mb-6">
           <h2 className="text-xl font-semibold mb-4">Database Information</h2>
-          <p className="text-gray-300 mb-4">
+          <p className="text-muted-foreground mb-4">
             Database Name: <code className="bg-gray-700 px-2 py-1 rounded">{DB_NAME}</code>
           </p>
-          <p className="text-gray-300 mb-4">
+          <p className="text-muted-foreground mb-4">
             Store Name: <code className="bg-gray-700 px-2 py-1 rounded">{STORE_NAME}</code>
           </p>
           
@@ -87,17 +87,17 @@ export default function TestWalletPage() {
         </div>
         
         {walletInfo && (
-          <div className="bg-gray-800 p-6 rounded-lg">
+          <div className="bg-card border border-border p-6 rounded-lg">
             <h2 className="text-xl font-semibold mb-4">Results</h2>
-            <pre className="bg-gray-900 p-4 rounded text-sm overflow-auto whitespace-pre-wrap">
+            <pre className="bg-background p-4 rounded text-sm overflow-auto whitespace-pre-wrap border border-border">
               {walletInfo}
             </pre>
           </div>
         )}
         
-        <div className="bg-gray-800 p-6 rounded-lg mt-6">
+        <div className="bg-card border border-border p-6 rounded-lg mt-6">
           <h2 className="text-xl font-semibold mb-4">Troubleshooting</h2>
-          <ul className="text-gray-300 space-y-2">
+          <ul className="text-muted-foreground space-y-2">
             <li>• If no wallets are found, try creating a new wallet first</li>
             <li>• Check the browser console for detailed logs</li>
             <li>• Make sure you're using the same browser where you created the wallet</li>

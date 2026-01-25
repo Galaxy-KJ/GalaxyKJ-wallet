@@ -1,12 +1,12 @@
 // src/contexts/SettingsContext.tsx
-'use client';
+"use client";
 
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, ReactNode } from "react";
 
-export type TabKey = 'theme' | 'visualization' | 'notifications' | 'language';
+export type TabKey = "theme" | "visualization" | "notifications" | "language";
 
 export interface Settings {
-  theme: 'light' | 'dark';
+  theme: "light" | "dark";
   accentColor: string;
   chartStyle: string;
   showBalances: boolean;
@@ -18,15 +18,15 @@ export interface Settings {
 }
 
 const defaultSettings: Settings = {
-  theme: 'light',
-  accentColor: 'purple',
-  chartStyle: 'Gradient',
+  theme: "light",
+  accentColor: "purple",
+  chartStyle: "Gradient",
   showBalances: true,
   compactMode: false,
   priceAlerts: false,
   transactionAlerts: false,
   securityAlerts: false,
-  language: 'en',
+  language: "en",
 };
 
 export const SettingsContext = createContext<{
@@ -44,31 +44,34 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const stored: Settings = {
-        theme: (localStorage.getItem('theme') as 'light' | 'dark') || defaultSettings.theme,
-        accentColor: localStorage.getItem('accentColor') || defaultSettings.accentColor,
-        chartStyle: localStorage.getItem('chartStyle') || defaultSettings.chartStyle,
-        showBalances: localStorage.getItem('showBalances') === 'true',
-        compactMode: localStorage.getItem('compactMode') === 'true',
-        priceAlerts: localStorage.getItem('priceAlerts') === 'true',
-        transactionAlerts: localStorage.getItem('transactionAlerts') === 'true',
-        securityAlerts: localStorage.getItem('securityAlerts') === 'true',
-        language: localStorage.getItem('language') || defaultSettings.language,
+        theme:
+          (localStorage.getItem("galaxy-theme") as "light" | "dark") ||
+          defaultSettings.theme,
+        accentColor:
+          localStorage.getItem("accentColor") || defaultSettings.accentColor,
+        chartStyle:
+          localStorage.getItem("chartStyle") || defaultSettings.chartStyle,
+        showBalances: localStorage.getItem("showBalances") === "true",
+        compactMode: localStorage.getItem("compactMode") === "true",
+        priceAlerts: localStorage.getItem("priceAlerts") === "true",
+        transactionAlerts: localStorage.getItem("transactionAlerts") === "true",
+        securityAlerts: localStorage.getItem("securityAlerts") === "true",
+        language: localStorage.getItem("language") || defaultSettings.language,
       };
       setSettings(stored);
-      document.body.classList.toggle('dark', stored.theme === 'dark');
     } catch {
       // En SSR localStorage no existe, ignorar
     }
   }, []);
 
   const setSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
-    setSettings(prev => {
+    setSettings((prev) => {
       const next = { ...prev, [key]: value };
       try {
-        localStorage.setItem(key, typeof value === 'string' ? value : String(value));
-        if (key === 'theme') {
-          document.body.classList.toggle('dark', value === 'dark');
-        }
+        localStorage.setItem(
+          key,
+          typeof value === "string" ? value : String(value),
+        );
       } catch {
         // Ignorar errores en SSR
       }

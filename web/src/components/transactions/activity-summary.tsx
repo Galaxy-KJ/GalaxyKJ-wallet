@@ -117,28 +117,28 @@ export function ActivitySummary() {
   };
 
   return (
-    <Card className="bg-[#0F1225] border-gray-800 p-6">
+    <Card className="bg-card border-border p-6">
       <h2 className="text-lg font-semibold mb-6">Activity Summary</h2>
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <div className="text-sm text-gray-400">Received (30d)</div>
+            <div className="text-sm text-muted-foreground">Received (30d)</div>
             <div className="text-xl font-semibold text-[#10B981]">+475.5 XLM</div>
-            <div className="text-sm text-gray-400">+350 USDC</div>
+            <div className="text-sm text-muted-foreground">+350 USDC</div>
           </div>
           <div>
-            <div className="text-sm text-gray-400">Sent (30d)</div>
+            <div className="text-sm text-muted-foreground">Sent (30d)</div>
             <div className="text-xl font-semibold text-[#60A5FA]">-125 XLM</div>
-            <div className="text-sm text-gray-400">-50 USDC</div>
+            <div className="text-sm text-muted-foreground">-50 USDC</div>
           </div>
         </div>
         <div className="h-[240px]">
           <Line data={data} options={options} />
         </div>
         <div className="flex items-center justify-between pt-2">
-          <div className="text-sm text-gray-400">5 transactions found</div>
+          <div className="text-sm text-muted-foreground">5 transactions found</div>
           <div className="flex gap-2">
-            <button className="text-sm text-gray-400 hover:text-white flex items-center gap-1">
+            <button className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -149,7 +149,7 @@ export function ActivitySummary() {
               </svg>
               CSV
             </button>
-            <button className="text-sm text-gray-400 hover:text-white flex items-center gap-1">
+            <button className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"

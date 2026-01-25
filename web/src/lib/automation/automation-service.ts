@@ -38,6 +38,11 @@ export interface CreateAutomationParams {
 
 export class AutomationService {
   static async create(params: CreateAutomationParams): Promise<AutomationRow | null> {
+    if (!supabase) {
+      console.error('Supabase client not initialized')
+      return null
+    }
+
     const payload: AutomationInsert = {
       user_id: params.userId,
       public_key: params.publicKey,

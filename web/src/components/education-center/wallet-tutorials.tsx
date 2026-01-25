@@ -96,17 +96,17 @@ export function WalletTutorials() {
       {tutorials.map((tutorial) => (
         <div
           key={tutorial.id}
-          className="border border-[#1e2a45] rounded-lg overflow-hidden"
+          className="border border-border rounded-lg overflow-hidden"
         >
           <div className="p-5">
             <div className="flex justify-between items-start mb-3">
-              <h3 className="text-xl font-medium text-white">
+              <h3 className="text-xl font-medium text-foreground">
                 {tutorial.title}
               </h3>
               <span
                 className={cn(
                   "px-3 py-1 text-xs font-medium rounded-full",
-                  getCategoryBadgeStyle(tutorial.category)
+                  getCategoryBadgeStyle(tutorial.category),
                 )}
               >
                 {tutorial.category}
@@ -121,18 +121,18 @@ export function WalletTutorials() {
               <span className="ml-auto">{tutorial.completion}% complete</span>
             </div>
 
-            <div className="w-full h-1.5 bg-[#1e2a45] rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-accent/20 rounded-full overflow-hidden">
               <div
                 className={cn(
                   "h-full rounded-full",
-                  getProgressBarColor(tutorial.completion)
+                  getProgressBarColor(tutorial.completion),
                 )}
                 style={{ width: `${tutorial.completion}%` }}
               />
             </div>
           </div>
 
-          <div className="border-t border-[#1e2a45] px-5 py-3 flex justify-end">
+          <div className="border-t border-border px-5 py-3 flex justify-end">
             {getActionButton(tutorial.completion)}
           </div>
         </div>

@@ -4,7 +4,13 @@ import { SendReceiveScreen } from "@/components/send-receive/send-receive-screen
 export default function SendReceivePage() {
   return (
     <main className="min-h-screen">
-      <Suspense fallback={<div className="min-h-screen bg-[#0A0B1E] flex items-center justify-center"><div className="text-white">Loading...</div></div>}>
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="text-foreground">Loading...</div>
+          </div>
+        }
+      >
         <SendReceiveScreen />
       </Suspense>
     </main>
