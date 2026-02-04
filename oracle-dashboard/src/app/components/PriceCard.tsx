@@ -6,7 +6,7 @@ export interface PriceWithChange {
   symbol: string;
   price: number;
   confidence: number;
-  sourcesUsed: number;
+  sourcesUsed: number | string[];
   timestamp: Date;
   change24h?: number;
   previousPrice?: number;
@@ -28,48 +28,45 @@ export function PriceCard({ data }: PriceCardProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-slate-100 dark:border-slate-700">
-      {/* Symbol and Price */}
-      <div className="mb-4">
-        <h3 className="text-slate-600 dark:text-slate-400 text-sm font-medium mb-1">
-          {data.symbol}
-        </h3>
-        <div className="flex items-baseline gap-2">
-          <p className="text-3xl font-bold text-slate-900 dark:text-white">
+    <div className="glass rounded-xl p-3 hover:bg-white/5 transition-all duration-300 group cursor-pointer border border-white/5">
+      <div className="flex justify-between items-start mb-2">
+        <div>
+          <h3 className="text-slate-500 text-[8px] font-bold uppercase tracking-widest mb-0.5">
+            {data.symbol} / USD
+          </h3>
+          <p className="text-lg font-mono font-bold text-white tracking-tight group-hover:text-purple-400 transition-colors">
             {formatPrice(data.price)}
           </p>
-          {data.change24h !== undefined && (
-            <span className={`text-lg font-semibold ${priceChangeClass}`}>
-              {getPriceChangeIcon(data.change24h)} {data.change24h > 0 ? '+' : ''}{data.change24h.toFixed(2)}%
-            </span>
-          )}
         </div>
+        {data.change24h !== undefined && (
+          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${priceChangeClass} bg-current/10`}>
+            {getPriceChangeIcon(data.change24h)} {data.change24h.toFixed(2)}%
+          </span>
+        )}
       </div>
 
-      {/* Aggregation Info */}
-      <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-        {/* Confidence */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-600 dark:text-slate-400">Confidence</span>
-          <span className={`text-sm font-semibold px-3 py-1 rounded-full ${confidenceClass(data.confidence)}`}>
-            {formatConfidence(data.confidence)}
-          </span>
+      <div className="flex items-center gap-3 pt-3 border-t border-white/5">
+        <div className="flex-1">
+          <div className="flex justify-between text-[10px] mb-1">
+            <span className="text-slate-500">Confidence</span>
+            <span className={`font-bold ${data.confidence > 0.8 ? 'text-green-400' : 'text-yellow-400'}`}>
+              {(data.confidence * 100).toFixed(0)}%
+            </span>
+          </div>
+          <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+             <div 
+               className={`h-full rounded-full ${data.confidence > 0.8 ? 'bg-green-500' : 'bg-yellow-500'}`}
+               style={{ width: `${data.confidence * 100}%` }}
+             ></div>
+          </div>
         </div>
-
-        {/* Sources Used */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-600 dark:text-slate-400">Sources Used</span>
-          <span className="text-sm font-semibold text-slate-900 dark:text-white">
-            {data.sourcesUsed}
-          </span>
-        </div>
-
-        {/* Updated */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-600 dark:text-slate-400">Updated</span>
-          <span className="text-sm text-slate-500 dark:text-slate-500">
-            {formatTimeAgo(data.timestamp)}
-          </span>
+        <div className="text-right">
+           <span className="block text-[10px] text-slate-500 leading-none mb-1">
+             {formatTimeAgo(data.timestamp)}
+           </span>
+            <span className="text-xs font-mono text-slate-500">
+              {Array.isArray(data.sourcesUsed) ? data.sourcesUsed.length : data.sourcesUsed} sources
+            </span>
         </div>
       </div>
     </div>

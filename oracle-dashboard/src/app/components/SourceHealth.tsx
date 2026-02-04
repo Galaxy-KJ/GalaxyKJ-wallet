@@ -13,86 +13,62 @@ export function SourceHealth({ health }: SourceHealthProps) {
   const healthColor = healthPercentage >= 75 ? 'text-green-600' : healthPercentage >= 50 ? 'text-yellow-600' : 'text-red-600';
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-slate-100 dark:border-slate-700">
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Oracle Sources
+    <div className="glass p-4 rounded-xl border border-white/5 bg-white/[0.02]">
+      <div className="mb-3">
+        <div className="flex items-center justify-between mb-1.5">
+          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+            Oracle Health
           </h2>
-          <div className={`text-sm font-bold ${healthColor}`}>
-            {healthPercentage}% Healthy
+          <div className={`text-[10px] font-black ${healthPercentage >= 75 ? 'text-green-500' : 'text-yellow-500'}`}>
+            {healthPercentage}%
           </div>
         </div>
-        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+        <div className="w-full bg-white/5 rounded-full h-1">
           <div
-            className={`h-2 rounded-full transition-all ${
+            className={`h-1 rounded-full transition-all ${
               healthPercentage >= 75
-                ? 'bg-green-600'
-                : healthPercentage >= 50
-                ? 'bg-yellow-600'
-                : 'bg-red-600'
+                ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]'
+                : 'bg-yellow-500'
             }`}
             style={{ width: `${healthPercentage}%` }}
           ></div>
         </div>
       </div>
 
-      <div className="space-y-3">
-        {healthy.length > 0 && (
-          <>
-            <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-              Healthy ({healthy.length})
+      <div className="space-y-2">
+        {healthy.map(([source, _]) => (
+          <div
+            key={source}
+            className="flex items-center gap-2 p-2 bg-white/[0.02] rounded-lg border border-white/5"
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_5px_rgba(74,222,128,0.5)]"></div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-white truncate capitalize">
+                {source.replace(/-/g, ' ')}
+              </p>
             </div>
-            {healthy.map(([source, _]) => (
-              <div
-                key={source}
-                className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800"
-              >
-                <span className="text-2xl">🟢</span>
-                <div className="flex-1">
-                  <p className="font-medium text-slate-900 dark:text-white capitalize">
-                    {source.replace(/-/g, ' ')}
-                  </p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">Connected</p>
-                </div>
-                <span className="text-xs font-semibold text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded">
-                  Ready
-                </span>
-              </div>
-            ))}
-          </>
-        )}
-
-        {unhealthy.length > 0 && (
-          <>
-            <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mt-4">
-              Unhealthy ({unhealthy.length})
+            <span className="text-[8px] font-bold text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded uppercase">
+              Ready
+            </span>
+          </div>
+        ))}
+        
+        {unhealthy.map(([source, _]) => (
+          <div
+            key={source}
+            className="flex items-center gap-2 p-2 bg-white/[0.02] rounded-lg border border-white/5"
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-red-400 shadow-[0_0_5px_rgba(248,113,113,0.5)]"></div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-white truncate capitalize">
+                {source.replace(/-/g, ' ')}
+              </p>
             </div>
-            {unhealthy.map(([source, _]) => (
-              <div
-                key={source}
-                className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800"
-              >
-                <span className="text-2xl">🔴</span>
-                <div className="flex-1">
-                  <p className="font-medium text-slate-900 dark:text-white capitalize">
-                    {source.replace(/-/g, ' ')}
-                  </p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">Connection failed</p>
-                </div>
-                <span className="text-xs font-semibold text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-2 py-1 rounded">
-                  Down
-                </span>
-              </div>
-            ))}
-          </>
-        )}
-      </div>
-
-      <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg text-sm text-slate-600 dark:text-slate-400">
-        <span className="font-semibold text-slate-900 dark:text-white">{healthy.length}</span> healthy •{' '}
-        <span className="font-semibold text-slate-900 dark:text-white">{unhealthy.length}</span> unhealthy •{' '}
-        <span className="font-semibold text-slate-900 dark:text-white">{totalSources}</span> total
+            <span className="text-[8px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded uppercase">
+              Down
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );

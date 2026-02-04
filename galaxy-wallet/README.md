@@ -167,6 +167,56 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
+## Supabase Tables
+
+The SDK requires these tables in your Supabase database. Run this SQL in the Supabase SQL Editor:
+
+```sql
+-- Main wallet storage
+CREATE TABLE invisible_wallets (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    public_key TEXT NOT NULL UNIQUE,
+    encrypted_private_key TEXT NOT NULL,
+    encrypted_seed TEXT,
+    network TEXT NOT NULL DEFAULT 'testnet',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_accessed_at TIMESTAMPTZ,
+    metadata JSONB DEFAULT '{}',
+    backup_status JSONB DEFAULT '{"isBackedUp": false, "backupMethod": "none"}'
+);
+
+-- Session management (optional, for unlock/lock features)
+CREATE TABLE wallet_sessions (
+    id SERIAL PRIMARY KEY,
+    wallet_id TEXT NOT NULL REFERENCES invisible_wallets(id),
+    user_id TEXT NOT NULL,
+    session_token TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    is_active BOOLEAN DEFAULT true,
+    device_info JSONB
+);
+
+-- Event logging (optional, for audit trail)
+CREATE TABLE wallet_events (
+    id TEXT PRIMARY KEY,
+    wallet_id TEXT NOT NULL REFERENCES invisible_wallets(id),
+    user_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    metadata JSONB
+);
+
+-- Indexes for performance
+CREATE INDEX idx_wallets_user_id ON invisible_wallets(user_id);
+CREATE INDEX idx_wallets_public_key ON invisible_wallets(public_key);
+CREATE INDEX idx_sessions_wallet_id ON wallet_sessions(wallet_id);
+CREATE INDEX idx_sessions_token ON wallet_sessions(session_token);
+CREATE INDEX idx_events_wallet_id ON wallet_events(wallet_id);
+```
+
 ## Getting Started
 
 ```bash

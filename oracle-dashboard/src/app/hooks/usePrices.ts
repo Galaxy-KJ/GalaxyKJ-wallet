@@ -29,8 +29,8 @@ export function usePrices(aggregator: OracleAggregator, symbols: string[] = DEFA
 
     fetchPrices();
 
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchPrices, 30000);
+    // Auto-refresh every 15 seconds
+    const interval = setInterval(fetchPrices, 15000);
     return () => clearInterval(interval);
   }, [aggregator, symbols]);
 

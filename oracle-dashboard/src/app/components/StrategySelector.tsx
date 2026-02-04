@@ -29,42 +29,39 @@ export function StrategySelector({ current, onChange }: StrategySelectorProps) {
   const strategies: StrategyType[] = ['median', 'weighted', 'twap'];
 
   return (
-    <div>
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-        Aggregation Strategy
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
+          Strategy
+        </h2>
+        <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-mono">
+          {STRATEGIES[current].label}
+        </span>
+      </div>
+      <div className="flex bg-slate-900/50 p-1 rounded-xl border border-white/5 gap-1">
         {strategies.map(strategy => (
           <button
             key={strategy}
             onClick={() => onChange(strategy)}
-            className={`p-4 rounded-lg border-2 transition-all text-left ${
+            className={`flex-1 flex flex-col items-center justify-center p-3 rounded-lg transition-all duration-300 relative ${
               current === strategy
-                ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600'
+                ? 'bg-purple-600/20 text-white shadow-lg'
+                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
             }`}
           >
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl">{STRATEGIES[strategy].icon}</span>
-              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
-                current === strategy
-                  ? 'border-blue-600 bg-blue-600'
-                  : 'border-slate-300 dark:border-slate-600'
-              }`}>
-                {current === strategy && (
-                  <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                )}
-              </div>
-              <span className="font-semibold text-slate-900 dark:text-white">
-                {STRATEGIES[strategy].label}
-              </span>
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 ml-9">
-              {STRATEGIES[strategy].description}
-            </p>
+            {current === strategy && (
+              <div className="absolute inset-0 border border-purple-500/50 rounded-lg animate-pulse" />
+            )}
+            <span className="text-xl mb-1">{STRATEGIES[strategy].icon}</span>
+            <span className="text-[10px] font-bold uppercase tracking-tighter">
+              {STRATEGIES[strategy].label}
+            </span>
           </button>
         ))}
       </div>
+      <p className="text-[11px] text-slate-500 italic px-1">
+        {STRATEGIES[current].description}
+      </p>
     </div>
   );
 }

@@ -4,19 +4,21 @@ import {
   MedianStrategy,
   WeightedAverageStrategy,
   TWAPStrategy,
+  PriceCache,
 } from '@galaxy-kj/core-oracles';
 import { useState, useMemo, useCallback } from 'react';
+import { ClientProxySource } from '@/app/lib/ClientProxySource';
 
 type StrategyType = 'median' | 'weighted' | 'twap';
 
 export function useOracles() {
   const [strategy, setStrategy] = useState<StrategyType>('median');
   const [config, setConfig] = useState({
-    minSources: 2,
-    maxDeviationPercent: 10,
-    maxStalenessMs: 60000,
+    minSources: 1,
+    maxDeviationPercent: 15,
+    maxStalenessMs: 300000,
     enableOutlierDetection: true,
-    outlierThreshold: 2.0,
+    outlierThreshold: 3.0,
   });
 
   const aggregator = useMemo(() => {
@@ -28,13 +30,15 @@ export function useOracles() {
     } else if (strategy === 'weighted') {
       agg.setStrategy(new WeightedAverageStrategy());
     } else {
-      // TWAP needs cache
-      agg.setStrategy(new TWAPStrategy());
+      // TWAP
+      const cache = new PriceCache({ ttlMs: 300000 });
+      agg.setStrategy(new TWAPStrategy(cache, 300000));
     }
 
-    // Add oracle sources here (you'll need to implement these)
-    // Example: agg.addSource(new CoinGeckoSource(), 1.0);
-    // Example: agg.addSource(new CoinMarketCapSource(), 1.0);
+    // Add client proxy source that calls our backend
+    // The backend uses the real SDK CoinGeckoSource
+    const source = new ClientProxySource();
+    agg.addSource(source, 1.0);
 
     return agg;
   }, [strategy, config]);
@@ -47,10 +51,16 @@ export function useOracles() {
     setConfig(prev => ({ ...prev, ...newConfig }));
   }, []);
 
+  const supportedSymbols = useMemo(() => {
+    // These are the symbols supported by CoinGeckoSource in the SDK
+    return ['BTC', 'ETH', 'XLM', 'USDC'];
+  }, []);
+
   return {
     aggregator,
     strategy,
     config,
+    supportedSymbols,
     updateStrategy,
     updateConfig,
   };
