@@ -4,15 +4,15 @@ import { WalletConnect } from '@/components/WalletConnect';
 import { WalletInfo } from '@/components/WalletInfo';
 import { AssetList } from '@/components/AssetList';
 import { SendForm } from '@/components/SendForm';
-import { TransactionList } from '@/components/TransactionList';
+import { TransactionHistory } from '@/components/TransactionHistory';
 import { NetworkSelector } from '@/components/NetworkSelector';
 import { useWallet } from '@/hooks/useWallet';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles } from 'lucide-react'; 
+import { Sparkles } from 'lucide-react';
 
 
 export default function Home() {
-  const { isConnected, address } = useWallet();
+  const { isConnected } = useWallet();
 
   return (
     <main className="min-h-screen bg-[#050510] text-white selection:bg-blue-500/30">
@@ -44,7 +44,7 @@ export default function Home() {
 
         <AnimatePresence mode="wait">
           {!isConnected ? (
-            <motion.div 
+            <motion.div
               key="connect-cta"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -65,7 +65,7 @@ export default function Home() {
               </div>
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               key="wallet-dashboard"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -104,7 +104,7 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
                   >
-                    <TransactionList />
+                    <TransactionHistory />
                   </motion.div>
                 </div>
               </div>

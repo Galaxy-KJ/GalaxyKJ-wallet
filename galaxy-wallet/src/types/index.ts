@@ -15,14 +15,22 @@ export interface AssetBalance {
     name?: string;
 }
 
-export interface Transaction {
+export interface WalletTransaction {
     id: string;
-    type: 'payment' | 'create_account' | 'change_trust' | 'other';
-    amount?: string;
-    asset?: string;
-    from?: string;
-    to?: string;
+    hash: string;
+    type: 'payment' | 'receive' | 'trustline' | 'other';
+    asset: string;        // 'XLM' | 'USDC' | ...
+    amount: string;
+    from: string;
+    to: string;
+    timestamp: Date;
+    memo?: string;
+    fee: string;          // in XLM stroops
+    successful: boolean;
+}
+
+export interface Transaction extends Omit<WalletTransaction, 'timestamp'> {
     timestamp: string;
     status: 'success' | 'failed' | 'pending';
-    hash: string;
 }
+
