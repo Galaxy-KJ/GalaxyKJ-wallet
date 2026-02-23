@@ -504,3 +504,30 @@ console.log(friendlyMessage);
 - Balance updates: ~200ms (Horizon API)
 - Transaction submission: ~1-3s (network confirmation)
 - Testnet funding: ~2-5s (Friendbot response)
+
+## 💵 USDC (Stablecoin) — API
+
+The SDK exposes high-level helpers to manage USDC operations (trustline and transfers).
+
+### `establishUSDCTrustline(walletId: string, email: string, passphrase: string): Promise<void>`
+- Purpose: Add the USDC trustline for the wallet so it can receive USDC.
+- Usage: Call once per wallet (per network) before receiving USDC.
+
+### `sendUSDC(params: { walletId: string; email: string; passphrase: string; toAddress: string; amount: string; }): Promise<{ transactionHash: string }>`
+- Purpose: Send USDC from the wallet to `toAddress`.
+- Returns: Object containing `transactionHash` when the transfer is accepted.
+
+### `usdcBalance`
+- Runtime property returned by the hook/SDK when available. `null` means no trustline present.
+
+### Common errors
+- `INSUFFICIENT_BALANCE` — not enough USDC to complete transfer.
+- `ACCOUNT_NOT_FOUND` — destination account not funded / not found.
+- `NO_TRUSTLINE` — caller wallet must add trustline before receiving USDC.
+
+### Example (pseudo)
+```
+await establishUSDCTrustline(walletId, email, passphrase)
+const res = await sendUSDC({ walletId, email, passphrase, toAddress: 'G...', amount: '2.50' })
+console.log(res.transactionHash)
+```

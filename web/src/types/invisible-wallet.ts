@@ -7,6 +7,7 @@
 
 export type NetworkType = 'testnet' | 'mainnet';
 export type WalletStatus = 'active' | 'inactive' | 'locked' | 'recovered';
+export type SupportedAsset = 'XLM' | 'USDC'
 
 /**
  * Core Invisible Wallet structure
@@ -189,6 +190,12 @@ export interface WalletWithBalance extends WalletResponse {
   accountExists: boolean;
 }
 
+export interface AssetBalance {
+  asset: SupportedAsset
+  balance: string
+  issuer?: string
+}
+
 /**
  * Error codes for the Invisible Wallet system
  */
@@ -197,32 +204,106 @@ export enum InvisibleWalletError {
   INVALID_API_KEY = 'INVALID_API_KEY',
   RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
   UNAUTHORIZED_ORIGIN = 'UNAUTHORIZED_ORIGIN',
-  
+
   // Wallet errors
   WALLET_NOT_FOUND = 'WALLET_NOT_FOUND',
   WALLET_ALREADY_EXISTS = 'WALLET_ALREADY_EXISTS',
   INVALID_PASSPHRASE = 'INVALID_PASSPHRASE',
   WALLET_LOCKED = 'WALLET_LOCKED',
-  
+
   // Encryption errors
   ENCRYPTION_FAILED = 'ENCRYPTION_FAILED',
   DECRYPTION_FAILED = 'DECRYPTION_FAILED',
   INVALID_ENCRYPTION_DATA = 'INVALID_ENCRYPTION_DATA',
-  
+
   // Stellar network errors
   STELLAR_ACCOUNT_NOT_FOUND = 'STELLAR_ACCOUNT_NOT_FOUND',
   STELLAR_INSUFFICIENT_BALANCE = 'STELLAR_INSUFFICIENT_BALANCE',
   STELLAR_TRANSACTION_FAILED = 'STELLAR_TRANSACTION_FAILED',
   STELLAR_NETWORK_ERROR = 'STELLAR_NETWORK_ERROR',
-  
+
   // Validation errors
   INVALID_EMAIL = 'INVALID_EMAIL',
   INVALID_PASSPHRASE_STRENGTH = 'INVALID_PASSPHRASE_STRENGTH',
   INVALID_TRANSACTION_XDR = 'INVALID_TRANSACTION_XDR',
   INVALID_NETWORK = 'INVALID_NETWORK',
-  
+
   // System errors
   DATABASE_ERROR = 'DATABASE_ERROR',
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
   SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
+
+  USDC_TRUSTLINE_NOT_FOUND = 'USDC_TRUSTLINE_NOT_FOUND',
+  USDC_SEND_FAILED = 'USDC_SEND_FAILED',
+
+  // Soroban contract errors
+  SOROBAN_SIMULATION_FAILED = 'SOROBAN_SIMULATION_FAILED',
+  SOROBAN_INVOCATION_FAILED = 'SOROBAN_INVOCATION_FAILED',
+  INVALID_CONTRACT_ID = 'INVALID_CONTRACT_ID',
+  INVALID_CONTRACT_ARGS = 'INVALID_CONTRACT_ARGS',
+}
+
+/**
+ * Soroban smart contract invocation request
+ */
+export interface InvokeContractRequest {
+  /** Wallet ID to sign the transaction */
+  walletId: string;
+  /** User email for verification */
+  email: string;
+  /** Passphrase to decrypt private key */
+  passphrase: string;
+  /** Contract ID (C... address) */
+  contractId: string;
+  /** Function name to invoke */
+  method: string;
+  /** Function arguments as ScVal XDR */
+  args: string[]; // Base64-encoded xdr.ScVal
+  /** Network to execute on */
+  network: NetworkType;
+  /** Platform ID for verification */
+  platformId: string;
+  /** Only simulate, don't submit */
+  simulateOnly?: boolean;
+}
+
+/**
+ * Soroban contract invocation response
+ */
+export interface ContractInvocationResponse {
+  /** Whether the invocation succeeded */
+  success: boolean;
+  /** Transaction hash if submitted */
+  transactionHash?: string;
+  /** Decoded return value */
+  result?: unknown;
+  /** Base64-encoded XDR result */
+  resultXdr?: string;
+  /** Error message if failed */
+  error?: string;
+  /** Transaction fee in stroops */
+  fee: string;
+  /** Simulation result if requested */
+  simulationResult?: SorobanSimulationResponse;
+  /** Signed XDR */
+  signedXDR?: string;
+}
+
+/**
+ * Soroban simulation response
+ */
+export interface SorobanSimulationResponse {
+  /** Estimated cost */
+  cost: {
+    cpuInsns: string;
+    memBytes: string;
+  };
+  /** Result XDR */
+  resultXdr?: string;
+  /** Events emitted */
+  events?: unknown[];
+  /** Footprint for transaction */
+  transactionData?: string;
+  /** Minimum resource fee */
+  minResourceFee?: string;
 }

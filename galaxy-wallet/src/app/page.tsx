@@ -2,6 +2,8 @@
 
 import { WalletConnect } from '@/components/WalletConnect';
 import { WalletInfo } from '@/components/WalletInfo';
+import { BiometricSettings } from '@/components/BiometricSettings';
+import { WalletBackup } from '@/components/WalletBackup';
 import { AssetList } from '@/components/AssetList';
 import { SendForm } from '@/components/SendForm';
 import { TransactionHistory } from '@/components/TransactionHistory';
@@ -79,6 +81,20 @@ export default function Home() {
                   transition={{ delay: 0.1 }}
                 >
                   <WalletInfo />
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 }}
+                >
+                  <WalletBackup />
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.18 }}
+                >
+                  <BiometricSettings />
                 </motion.div>
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}

@@ -6,17 +6,17 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  InvisibleWalletSDK, 
+import {
+  InvisibleWalletSDK,
   createInvisibleWalletSDK,
   SDKConfig
 } from '@/lib/invisible-wallet/sdk';
-import { 
-  WalletResponse, 
+import {
+  WalletResponse,
   WalletCreationResponse,
-  WalletWithBalance, 
-  SignTransactionResponse, 
-  NetworkType 
+  WalletWithBalance,
+  SignTransactionResponse,
+  NetworkType
 } from '@/types/invisible-wallet';
 import {
   UseInvisibleWalletState,
@@ -48,7 +48,7 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
   useEffect(() => {
     try {
       sdkRef.current = createInvisibleWalletSDK(config);
-      
+
       // Set up event listeners
       const handleWalletCreated = (data: unknown) => {
         console.log('Wallet created event:', data);
@@ -84,18 +84,18 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
         }
       };
     } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         error: error instanceof Error ? error.message : 'Failed to initialize SDK',
-        isInitialized: false 
+        isInitialized: false
       }));
     }
   }, [config]);
 
   // Create wallet function
   const createWallet = useCallback(async (
-    email: string, 
-    passphrase: string, 
+    email: string,
+    passphrase: string,
     options?: CreateWalletOptions
   ): Promise<WalletResponse> => {
     if (!sdkRef.current) {
@@ -106,7 +106,7 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
 
     try {
       const wallet = await sdkRef.current.createWallet(email, passphrase, options);
-      
+
       // Store current wallet info for auto-refresh
       currentWalletRef.current = {
         email,
@@ -119,10 +119,10 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
       setState(prev => ({ ...prev, isLoading: false }));
       return wallet;
     } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         error: error instanceof Error ? error.message : 'Failed to create wallet',
-        isLoading: false 
+        isLoading: false
       }));
       throw error;
     }
@@ -130,8 +130,8 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
 
   // Create wallet with keys function (for demo purposes)
   const createWalletWithKeys = useCallback(async (
-    email: string, 
-    passphrase: string, 
+    email: string,
+    passphrase: string,
     options?: CreateWalletOptions
   ): Promise<WalletCreationResponse> => {
     if (!sdkRef.current) {
@@ -142,7 +142,7 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
 
     try {
       const wallet = await sdkRef.current.createWalletWithKeys(email, passphrase, options);
-      
+
       // Store current wallet info for auto-refresh
       currentWalletRef.current = {
         email,
@@ -155,10 +155,10 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
       setState(prev => ({ ...prev, isLoading: false }));
       return wallet;
     } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         error: error instanceof Error ? error.message : 'Failed to create wallet with keys',
-        isLoading: false 
+        isLoading: false
       }));
       throw error;
     }
@@ -166,8 +166,8 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
 
   // Recover wallet function
   const recoverWallet = useCallback(async (
-    email: string, 
-    passphrase: string, 
+    email: string,
+    passphrase: string,
     options?: RecoverWalletOptions
   ): Promise<WalletResponse> => {
     if (!sdkRef.current) {
@@ -178,7 +178,7 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
 
     try {
       const wallet = await sdkRef.current.recoverWallet(email, passphrase, options);
-      
+
       // Store current wallet info for auto-refresh
       currentWalletRef.current = {
         email,
@@ -191,10 +191,10 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
       setState(prev => ({ ...prev, isLoading: false }));
       return wallet;
     } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         error: error instanceof Error ? error.message : 'Failed to recover wallet',
-        isLoading: false 
+        isLoading: false
       }));
       throw error;
     }
@@ -202,7 +202,7 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
 
   // Get wallet function
   const getWallet = useCallback(async (
-    email: string, 
+    email: string,
     options?: GetWalletOptions
   ): Promise<WalletWithBalance | null> => {
     if (!sdkRef.current) {
@@ -213,11 +213,11 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
 
     try {
       const wallet = await sdkRef.current.getWallet(email, options);
-      
-      setState(prev => ({ 
-        ...prev, 
-        wallet, 
-        isLoading: false 
+
+      setState(prev => ({
+        ...prev,
+        wallet,
+        isLoading: false
       }));
 
       // Store current wallet info for auto-refresh
@@ -230,10 +230,10 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
 
       return wallet;
     } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         error: error instanceof Error ? error.message : 'Failed to get wallet',
-        isLoading: false 
+        isLoading: false
       }));
       throw error;
     }
@@ -254,23 +254,23 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
 
     try {
       const result = await sdkRef.current.signTransaction(
-        walletId, 
-        email, 
-        passphrase, 
+        walletId,
+        email,
+        passphrase,
         transactionXDR
       );
 
       setState(prev => ({ ...prev, isLoading: false }));
-      
+
       // Refresh wallet balance after successful transaction
       // Note: We'll refresh manually later to avoid circular dependencies
 
       return result;
     } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         error: error instanceof Error ? error.message : 'Failed to sign transaction',
-        isLoading: false 
+        isLoading: false
       }));
       throw error;
     }
@@ -300,12 +300,54 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
         currentWalletRef.current.email,
         { network: currentWalletRef.current.network }
       );
-      
+
       setState(prev => ({ ...prev, wallet }));
     } catch (error) {
       console.warn('Failed to refresh wallet:', error);
     }
   }, []);
+
+  // Establish USDC trustline
+  const establishUSDCTrustline = useCallback(async (
+    walletId: string,
+    email: string,
+    passphrase: string
+  ): Promise<SignTransactionResponse> => {
+    if (!sdkRef.current) throw new Error('SDK not initialized')
+    setState(prev => ({ ...prev, isLoading: true, error: null }))
+    try {
+      const result = await sdkRef.current.establishUSDCTrustline(walletId, email, passphrase)
+      setState(prev => ({ ...prev, isLoading: false }))
+      await refreshWallet()
+      return result
+    } catch (error) {
+      setState(prev => ({ ...prev, error: error instanceof Error ? error.message : 'Failed to establish trustline', isLoading: false }))
+      throw error
+    }
+  }, [refreshWallet])
+
+  // Send USDC
+  const sendUSDC = useCallback(async (params: {
+    walletId: string
+    email: string
+    passphrase: string
+    toAddress: string
+    amount: string
+  }): Promise<SignTransactionResponse> => {
+    if (!sdkRef.current) throw new Error('SDK not initialized')
+    setState(prev => ({ ...prev, isLoading: true, error: null }))
+    try {
+      const result = await sdkRef.current.sendUSDC(params)
+      setState(prev => ({ ...prev, isLoading: false }))
+      await refreshWallet()
+      return result
+    } catch (error) {
+      setState(prev => ({ ...prev, error: error instanceof Error ? error.message : 'Failed to send USDC', isLoading: false }))
+      throw error
+    }
+  }, [refreshWallet]);
+
+  const usdcBalance = state.wallet?.balances.find(b => b.assetCode === 'USDC')?.balance ?? null;
 
   return {
     ...state,
@@ -318,7 +360,12 @@ export function useInvisibleWallet(config: SDKConfig): UseInvisibleWalletReturn 
     clearError,
     refreshWallet,
     sdk: sdkRef.current,
+    establishUSDCTrustline,
+    sendUSDC,
+    usdcBalance,
   };
+
+
 }
 
 /**

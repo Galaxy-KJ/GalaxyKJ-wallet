@@ -20,7 +20,8 @@ interface CachedTransaction {
 export class TransactionCache {
     private readonly dbName = 'galaxy-wallet-db';
     private readonly storeName = 'transactions';
-    private readonly dbVersion = 2;
+    private readonly biometricStore = 'biometrics';
+    private readonly dbVersion = 3;
     private db: IDBDatabase | null = null;
 
     async init(): Promise<void> {
@@ -31,12 +32,17 @@ export class TransactionCache {
 
             request.onupgradeneeded = () => {
                 const db = request.result;
-                if (db.objectStoreNames.contains(this.storeName)) {
-                    db.deleteObjectStore(this.storeName);
+
+                // Transactions
+                if (!db.objectStoreNames.contains(this.storeName)) {
+                    const store = db.createObjectStore(this.storeName, { keyPath: 'cacheId' });
+                    store.createIndex('walletNetwork', ['walletId', 'network'], { unique: false });
                 }
 
-                const store = db.createObjectStore(this.storeName, { keyPath: 'cacheId' });
-                store.createIndex('walletNetwork', ['walletId', 'network'], { unique: false });
+                // Biometrics
+                if (!db.objectStoreNames.contains(this.biometricStore)) {
+                    db.createObjectStore(this.biometricStore, { keyPath: 'walletId' });
+                }
             };
 
             request.onsuccess = () => {
@@ -110,6 +116,43 @@ export class TransactionCache {
             fee: item.fee,
             successful: item.successful,
         }));
+    }
+
+    async saveBiometricKey(walletId: string, data: { credentialId: string; encryptedSecret: string; salt: string; iv: string }): Promise<void> {
+        await this.init();
+        if (!this.db) return;
+
+        const tx = this.db.transaction(this.biometricStore, 'readwrite');
+        const store = tx.objectStore(this.biometricStore);
+        store.put({ walletId, ...data });
+
+        await new Promise<void>((resolve, reject) => {
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error ?? new Error('Failed saving biometric key'));
+        });
+    }
+
+    async getBiometricKey(walletId: string): Promise<{ credentialId: string; encryptedSecret: string; salt: string; iv: string } | null> {
+        await this.init();
+        if (!this.db) return null;
+
+        const tx = this.db.transaction(this.biometricStore, 'readonly');
+        const store = tx.objectStore(this.biometricStore);
+        const request = store.get(walletId);
+
+        return await new Promise((resolve, reject) => {
+            request.onsuccess = () => resolve(request.result || null);
+            request.onerror = () => reject(request.error ?? new Error('Failed loading biometric key'));
+        });
+    }
+
+    async deleteBiometricKey(walletId: string): Promise<void> {
+        await this.init();
+        if (!this.db) return;
+
+        const tx = this.db.transaction(this.biometricStore, 'readwrite');
+        const store = tx.objectStore(this.biometricStore);
+        store.delete(walletId);
     }
 }
 
