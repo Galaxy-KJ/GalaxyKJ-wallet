@@ -718,7 +718,7 @@ export class InvisibleWalletService {
     const server = createStellarServer(wallet.network)
     if (!server) throw new Error(InvisibleWalletError.STELLAR_NETWORK_ERROR)
 
-    const { Asset, Operation, TransactionBuilder: TB, Networks: N } = await import('@stellar/stellar-sdk')
+    const { Asset, Operation, TransactionBuilder: TB } = await import('@stellar/stellar-sdk')
     const usdcAsset = new Asset('USDC', USDC_ISSUERS[wallet.network])
     const account = await server.loadAccount(wallet.publicKey)
 
