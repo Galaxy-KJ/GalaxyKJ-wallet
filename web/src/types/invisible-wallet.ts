@@ -235,4 +235,75 @@ export enum InvisibleWalletError {
 
   USDC_TRUSTLINE_NOT_FOUND = 'USDC_TRUSTLINE_NOT_FOUND',
   USDC_SEND_FAILED = 'USDC_SEND_FAILED',
+
+  // Soroban contract errors
+  SOROBAN_SIMULATION_FAILED = 'SOROBAN_SIMULATION_FAILED',
+  SOROBAN_INVOCATION_FAILED = 'SOROBAN_INVOCATION_FAILED',
+  INVALID_CONTRACT_ID = 'INVALID_CONTRACT_ID',
+  INVALID_CONTRACT_ARGS = 'INVALID_CONTRACT_ARGS',
+}
+
+/**
+ * Soroban smart contract invocation request
+ */
+export interface InvokeContractRequest {
+  /** Wallet ID to sign the transaction */
+  walletId: string;
+  /** User email for verification */
+  email: string;
+  /** Passphrase to decrypt private key */
+  passphrase: string;
+  /** Contract ID (C... address) */
+  contractId: string;
+  /** Function name to invoke */
+  method: string;
+  /** Function arguments as ScVal XDR */
+  args: string[]; // Base64-encoded xdr.ScVal
+  /** Network to execute on */
+  network: NetworkType;
+  /** Platform ID for verification */
+  platformId: string;
+  /** Only simulate, don't submit */
+  simulateOnly?: boolean;
+}
+
+/**
+ * Soroban contract invocation response
+ */
+export interface ContractInvocationResponse {
+  /** Whether the invocation succeeded */
+  success: boolean;
+  /** Transaction hash if submitted */
+  transactionHash?: string;
+  /** Decoded return value */
+  result?: unknown;
+  /** Base64-encoded XDR result */
+  resultXdr?: string;
+  /** Error message if failed */
+  error?: string;
+  /** Transaction fee in stroops */
+  fee: string;
+  /** Simulation result if requested */
+  simulationResult?: SorobanSimulationResponse;
+  /** Signed XDR */
+  signedXDR?: string;
+}
+
+/**
+ * Soroban simulation response
+ */
+export interface SorobanSimulationResponse {
+  /** Estimated cost */
+  cost: {
+    cpuInsns: string;
+    memBytes: string;
+  };
+  /** Result XDR */
+  resultXdr?: string;
+  /** Events emitted */
+  events?: unknown[];
+  /** Footprint for transaction */
+  transactionData?: string;
+  /** Minimum resource fee */
+  minResourceFee?: string;
 }

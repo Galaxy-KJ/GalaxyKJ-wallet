@@ -5,7 +5,16 @@
  * while abstracting Stellar blockchain complexity from end users.
  */
 
-import { Keypair, Networks, Horizon, TransactionBuilder } from '@stellar/stellar-sdk';
+import {
+  Keypair,
+  Networks,
+  Horizon,
+  TransactionBuilder,
+  SorobanRpc,
+  Operation,
+  Contract,
+  xdr,
+} from '@stellar/stellar-sdk';
 import {
   InvisibleWallet,
   CreateWalletRequest,
@@ -18,14 +27,25 @@ import {
   NetworkType,
   InvisibleWalletError,
   AuditLogEntry,
-  StellarBalance
+  StellarBalance,
+  InvokeContractRequest,
+  ContractInvocationResponse,
 } from '@/types/invisible-wallet';
 import { CryptoService } from './crypto-service';
+import { SorobanUtils } from './soroban-utils';
 
 const USDC_ISSUERS: Record<NetworkType, string> = {
   testnet: 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
   mainnet: 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN',
 }
+
+/**
+ * Configuration for Soroban RPC endpoints
+ */
+const SOROBAN_RPC_URLS: Record<NetworkType, string> = {
+  testnet: 'https://soroban-testnet.stellar.org',
+  mainnet: 'https://soroban-mainnet.stellar.org',
+};
 
 /**
  * Configuration for Stellar networks
@@ -812,5 +832,163 @@ export class InvisibleWalletService {
         ivLength: 16,
       },
     }, passphrase)
+  }
+
+  /**
+   * Invokes a Soroban smart contract method
+   */
+  async invokeContract(request: InvokeContractRequest): Promise<ContractInvocationResponse> {
+    try {
+      // Find and verify wallet
+      const wallet = await this.storage.getWalletById(request.walletId);
+      if (!wallet) {
+        throw new Error(InvisibleWalletError.WALLET_NOT_FOUND);
+      }
+
+      if (wallet.platformId !== request.platformId) {
+        throw new Error(InvisibleWalletError.UNAUTHORIZED_ORIGIN);
+      }
+
+      if (wallet.email !== request.email) {
+        throw new Error(InvisibleWalletError.WALLET_NOT_FOUND);
+      }
+
+      // Validate contract ID
+      if (!SorobanUtils.isValidContractId(request.contractId)) {
+        throw new Error(InvisibleWalletError.INVALID_CONTRACT_ID);
+      }
+
+      // Decrypt private key
+      const privateKey = await this.decryptWalletKey(wallet, request.passphrase, request.platformId);
+      const keypair = Keypair.fromSecret(privateKey);
+
+      // Create Soroban RPC client
+      const rpcUrl = SOROBAN_RPC_URLS[request.network];
+      const server = new SorobanRpc.Server(rpcUrl);
+
+      // Build contract invocation operation
+      const contract = new Contract(request.contractId);
+
+      // Convert base64 args to ScVal XDR
+      const args = request.args.map(arg => xdr.ScVal.fromXDR(arg, 'base64'));
+
+      // Create invoke host function operation
+      const operation = contract.call(request.method, ...args);
+
+      // Load account to get sequence number
+      const sourceAccount = await server.getAccount(wallet.publicKey);
+
+      // Build transaction
+      let transaction = new TransactionBuilder(sourceAccount, {
+        fee: '100', // Will be updated after simulation
+        networkPassphrase: STELLAR_NETWORKS[request.network].networkPassphrase,
+      })
+        .addOperation(operation)
+        .setTimeout(30)
+        .build();
+
+      // Simulate transaction to get resource requirements
+      const simulation = await server.simulateTransaction(transaction);
+
+      if (SorobanRpc.Api.isSimulationError(simulation)) {
+        throw new Error(`Simulation failed: ${JSON.stringify(simulation)}`);
+      }
+
+      // If simulate only, return early
+      if (request.simulateOnly) {
+        return {
+          success: true,
+          fee: simulation.minResourceFee || '0',
+          resultXdr: simulation.result?.retval.toXDR('base64'),
+          result: simulation.result?.retval ? SorobanUtils.decodeResult(simulation.result.retval.toXDR('base64')) : undefined,
+          simulationResult: {
+            cost: {
+              cpuInsns: simulation.cost?.cpuInsns || '0',
+              memBytes: simulation.cost?.memBytes || '0',
+            },
+            resultXdr: simulation.result?.retval.toXDR('base64'),
+            events: simulation.events,
+            transactionData: simulation.transactionData?.toXDR('base64'),
+            minResourceFee: simulation.minResourceFee,
+          },
+        };
+      }
+
+      // Assemble transaction with simulation results
+      transaction = SorobanRpc.assembleTransaction(transaction, simulation).build();
+
+      // Sign transaction
+      transaction.sign(keypair);
+
+      // Submit transaction
+      const response = await server.sendTransaction(transaction);
+
+      // Wait for confirmation
+      let getResponseResult = await server.getTransaction(response.hash);
+      let attempts = 0;
+      const maxAttempts = 10;
+
+      while (getResponseResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        getResponseResult = await server.getTransaction(response.hash);
+        attempts++;
+      }
+
+      if (getResponseResult.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+        const result = getResponseResult.returnValue;
+
+        // Log successful invocation
+        await this.logAuditEntry({
+          id: CryptoService.generateSecureId(),
+          walletId: wallet.id,
+          operation: 'invoke_contract',
+          timestamp: new Date().toISOString(),
+          platformId: request.platformId,
+          ipAddress: 'unknown',
+          userAgent: 'unknown',
+          success: true,
+          metadata: {
+            contractId: request.contractId,
+            method: request.method,
+            transactionHash: response.hash,
+          },
+        });
+
+        return {
+          success: true,
+          transactionHash: response.hash,
+          signedXDR: transaction.toXDR(),
+          fee: simulation.minResourceFee || '0',
+          resultXdr: result?.toXDR('base64'),
+          result: result ? SorobanUtils.decodeResult(result.toXDR('base64')) : undefined,
+        };
+      } else {
+        throw new Error(`Transaction failed with status: ${getResponseResult.status}`);
+      }
+
+    } catch (error) {
+      console.error('Failed to invoke contract:', error);
+
+      // Log failed invocation
+      if (request.walletId) {
+        await this.logAuditEntry({
+          id: CryptoService.generateSecureId(),
+          walletId: request.walletId,
+          operation: 'invoke_contract',
+          timestamp: new Date().toISOString(),
+          platformId: request.platformId,
+          ipAddress: 'unknown',
+          userAgent: 'unknown',
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+
+      return {
+        success: false,
+        fee: '0',
+        error: error instanceof Error ? error.message : 'Contract invocation failed',
+      };
+    }
   }
 }
