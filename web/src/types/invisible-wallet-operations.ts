@@ -72,7 +72,7 @@ export interface UseInvisibleWalletReturn extends UseInvisibleWalletState {
   getWallet: (email: string, options?: GetWalletOptions) => Promise<WalletWithBalance | null>;
   /** Sign a transaction with the wallet */
   signTransaction: (walletId: string, email: string, passphrase: string, transactionXDR: string) => Promise<SignTransactionResponse>;
-  
+
   // Utility functions
   /** Validate passphrase strength and format */
   validatePassphrase: (passphrase: string) => { isValid: boolean; errors: string[] };
@@ -80,9 +80,13 @@ export interface UseInvisibleWalletReturn extends UseInvisibleWalletState {
   clearError: () => void;
   /** Refresh wallet data and balance */
   refreshWallet: () => Promise<void>;
-  
+
   // SDK instance (for advanced usage)
   sdk: InvisibleWalletSDK | null;
+
+  establishUSDCTrustline: (walletId: string, email: string, passphrase: string) => Promise<SignTransactionResponse>
+  sendUSDC: (params: { walletId: string; email: string; passphrase: string; toAddress: string; amount: string }) => Promise<SignTransactionResponse>
+  usdcBalance: string | null
 }
 
 /**
@@ -169,10 +173,10 @@ export interface InvisibleWalletSDK {
   recoverWallet(email: string, passphrase: string, options?: RecoverWalletOptions): Promise<WalletResponse>;
   getWallet(email: string, options?: GetWalletOptions): Promise<WalletWithBalance | null>;
   signTransaction(walletId: string, email: string, passphrase: string, transactionXDR: string): Promise<SignTransactionResponse>;
-  
+
   // Utility methods
   validatePassphrase(passphrase: string): { isValid: boolean; errors: string[] };
-  
+
   // Event handling
   on(event: string, callback: (data: unknown) => void): void;
   off(event: string, callback: (data: unknown) => void): void;
@@ -182,10 +186,12 @@ export interface InvisibleWalletSDK {
 import type { WalletWithBalance } from './invisible-wallet';
 
 // Re-export types from invisible-wallet.ts for convenience
-export type { 
-  NetworkType, 
-  WalletResponse, 
-  WalletCreationResponse, 
+export type {
+  NetworkType,
+  WalletResponse,
+  WalletCreationResponse,
   SignTransactionResponse,
-  WalletWithBalance 
+  WalletWithBalance
 } from './invisible-wallet';
+
+
