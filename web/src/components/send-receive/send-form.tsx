@@ -39,6 +39,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import { QRScannerModal } from "./qr-scanner";
+import { parseStellarUri } from "@/lib/stellar/sep0007";
+
 // New: loading state + UI primitives
 import { useLoadingState } from "../../hooks/use-loading-state";
 import {
@@ -58,7 +61,7 @@ export function SendForm() {
   const [amount, setAmount] = useState("");
   const [selectedToken, setSelectedToken] = useState("XLM");
   const [percentageSelected, setPercentageSelected] = useState<number | null>(
-    null
+    null,
   );
 
   // Network hints
@@ -69,6 +72,7 @@ export function SendForm() {
   const [modalTitle, setModalTitle] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [show, setShow] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   // Address validation for immediate feedback
   const [addressValidation, setAddressValidation] = useState<{
@@ -165,9 +169,28 @@ export function SendForm() {
     }
   };
 
-  /** Show a QR scanner affordance (placeholder). */
+  /** Show a QR scanner affordance. */
   const handleScanQR = () => {
-    toast({ title: "QR Scanner", description: "QR scanner would open here" });
+    setShowScanner(true);
+  };
+
+  const handleQRScanSuccess = (decodedText: string) => {
+    const parsed = parseStellarUri(decodedText);
+    if (parsed) {
+      setAddress(parsed.destination);
+      if (parsed.amount) setAmount(parsed.amount);
+      if (parsed.assetCode) setSelectedToken(parsed.assetCode);
+      toast({
+        title: "QR Code Scanned",
+        description: "Payment details populated",
+      });
+    } else {
+      setAddress(decodedText);
+      toast({
+        title: "Address Scanned",
+        description: "Address populated",
+      });
+    }
   };
 
   /** Quick amount selection by percentage of available balance. */
@@ -192,7 +215,7 @@ export function SendForm() {
       title: "Transaction initiated",
       description: `Sending ${amount} ${selectedToken} to ${address.substring(
         0,
-        6
+        6,
       )}...${address.substring(address.length - 4)}`,
     });
 
@@ -266,8 +289,8 @@ export function SendForm() {
                   addressValidation?.isValid === false
                     ? "border-red-500 focus:border-red-400"
                     : addressValidation?.isValid === true
-                    ? "border-green-500 focus:border-green-400"
-                    : "border-[#1F2037] focus:border-[#7C3AED]"
+                      ? "border-green-500 focus:border-green-400"
+                      : "border-[#1F2037] focus:border-[#7C3AED]"
                 }`}
               />
               {address && (
@@ -357,7 +380,7 @@ export function SendForm() {
             <span className="text-sm text-gray-400">
               Available:{" "}
               {selectedTokenData.balance.toFixed(
-                selectedTokenData.balance < 1 ? 4 : 2
+                selectedTokenData.balance < 1 ? 4 : 2,
               )}{" "}
               {selectedToken}
             </span>
@@ -518,6 +541,13 @@ export function SendForm() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* QR Scanner Modal */}
+      <QRScannerModal
+        open={showScanner}
+        onOpenChange={setShowScanner}
+        onScanSuccess={handleQRScanSuccess}
+      />
     </CardContent>
   );
 }
