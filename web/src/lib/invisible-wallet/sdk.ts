@@ -13,9 +13,13 @@ import {
   WalletWithBalance,
   SignTransactionRequest,
   SignTransactionResponse,
-  NetworkType
+  NetworkType,
+  InvokeContractRequest,
+  ContractInvocationResponse,
 } from '@/types/invisible-wallet';
 import { InvisibleWalletService, WalletStorage } from './wallet-service';
+import { SorobanUtils } from './soroban-utils';
+import { createContractPresets } from './contract-presets';
 
 export interface SDKConfig {
   /** API endpoint for server-side operations */
@@ -510,6 +514,75 @@ export class InvisibleWalletSDK {
       await this.handleError('sendUSDC', error);
       throw error;
     }
+  }
+
+  /**
+   * Invokes a Soroban smart contract method
+   */
+  async invokeContract(
+    walletId: string,
+    email: string,
+    passphrase: string,
+    contractId: string,
+    method: string,
+    args: (string | number | boolean | bigint)[],
+    options?: {
+      network?: NetworkType;
+      simulateOnly?: boolean;
+    }
+  ): Promise<ContractInvocationResponse> {
+    try {
+      const network = options?.network || this.config.defaultNetwork || 'testnet';
+
+      // Encode arguments to ScVal XDR
+      const encodedArgs = SorobanUtils.encodeArgs(args);
+
+      const request: InvokeContractRequest = {
+        walletId,
+        email,
+        passphrase,
+        contractId,
+        method,
+        args: encodedArgs,
+        network,
+        platformId: this.config.platformId,
+        simulateOnly: options?.simulateOnly,
+      };
+
+      const result = await this.service.invokeContract(request);
+
+      if (result.success && !options?.simulateOnly) {
+        // Emit event for successful contract invocation
+        this.emit('transactionSigned', {
+          walletId,
+          transactionHash: result.transactionHash,
+          signedXDR: result.signedXDR,
+        });
+
+        if (this.config.debug) {
+          console.log('Contract invoked successfully:', result.transactionHash);
+        }
+      }
+
+      return result;
+    } catch (error) {
+      this.handleError('invokeContract', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Provides helper utilities for Soroban contract interaction
+   */
+  get soroban() {
+    return SorobanUtils;
+  }
+
+  /**
+   * Provides pre-configured contract presets for common contracts
+   */
+  get contracts() {
+    return createContractPresets(this);
   }
 }
 
