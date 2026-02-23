@@ -6,10 +6,10 @@
  */
 
 import { Keypair, Networks, Horizon, TransactionBuilder } from '@stellar/stellar-sdk';
-import { 
-  InvisibleWallet, 
-  CreateWalletRequest, 
-  RecoverWalletRequest, 
+import {
+  InvisibleWallet,
+  CreateWalletRequest,
+  RecoverWalletRequest,
   WalletResponse,
   WalletCreationResponse,
   WalletWithBalance,
@@ -21,6 +21,11 @@ import {
   StellarBalance
 } from '@/types/invisible-wallet';
 import { CryptoService } from './crypto-service';
+
+const USDC_ISSUERS: Record<NetworkType, string> = {
+  testnet: 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
+  mainnet: 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN',
+}
 
 /**
  * Configuration for Stellar networks
@@ -55,23 +60,23 @@ async function makeNetworkRequest<T>(
   retries: number = NETWORK_CONFIG.retries
 ): Promise<T> {
   let lastError: Error;
-  
+
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await requestFn();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      
+
       // If this is the last attempt, throw the error
       if (attempt === retries) {
         break;
       }
-      
+
       // Wait before retrying
       await new Promise(resolve => setTimeout(resolve, NETWORK_CONFIG.retryDelay * (attempt + 1)));
     }
   }
-  
+
   throw lastError!;
 }
 
@@ -94,7 +99,7 @@ function createStellarServer(network: NetworkType): Horizon.Server | null {
       console.error('Stellar SDK not properly initialized');
       return null;
     }
-    
+
     const networkConfig = STELLAR_NETWORKS[network];
     return new Horizon.Server(networkConfig.horizonURL, {
       allowHttp: network === 'testnet', // Allow HTTP for testnet
@@ -189,8 +194,8 @@ export class InvisibleWalletService {
 
       // Check if wallet already exists
       const existingWallet = await this.storage.getWallet(
-        request.email, 
-        request.platformId, 
+        request.email,
+        request.platformId,
         request.network
       );
 
@@ -205,7 +210,7 @@ export class InvisibleWalletService {
 
       // Encrypt the private key
       const encryptionResult = await CryptoService.encryptPrivateKey(
-        secretKey, 
+        secretKey,
         request.passphrase
       );
 
@@ -264,8 +269,8 @@ export class InvisibleWalletService {
 
       // Check if wallet already exists
       const existingWallet = await this.storage.getWallet(
-        request.email, 
-        request.platformId, 
+        request.email,
+        request.platformId,
         request.network
       );
 
@@ -280,7 +285,7 @@ export class InvisibleWalletService {
 
       // Encrypt the private key
       const encryptionResult = await CryptoService.encryptPrivateKey(
-        secretKey, 
+        secretKey,
         request.passphrase
       );
 
@@ -411,7 +416,7 @@ export class InvisibleWalletService {
     try {
       // Find wallet
       const wallet = await this.storage.getWalletById(request.walletId);
-      
+
       if (!wallet) {
         throw new Error(InvisibleWalletError.WALLET_NOT_FOUND);
       }
@@ -462,7 +467,7 @@ export class InvisibleWalletService {
       const networkConfig = STELLAR_NETWORKS[wallet.network];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let transaction: any;
-      
+
       try {
         transaction = TransactionBuilder.fromXDR(
           request.transactionXDR,
@@ -522,14 +527,14 @@ export class InvisibleWalletService {
   ): Promise<WalletWithBalance | null> {
     try {
       const wallet = await this.storage.getWallet(email, platformId, network);
-      
+
       if (!wallet) {
         return null;
       }
 
       // Get Stellar account information with improved error handling
       const server = createStellarServer(network);
-      
+
       if (!server) {
         console.warn('Failed to create Stellar server instance, returning wallet without balance');
         return {
@@ -555,7 +560,7 @@ export class InvisibleWalletService {
 
         accountExists = true;
         sequence = account.sequence;
-        
+
         balances = account.balances.map(balance => ({
           balance: balance.balance,
           assetType: balance.asset_type,
@@ -566,7 +571,7 @@ export class InvisibleWalletService {
         // Account doesn't exist yet or network error
         console.warn('Failed to load Stellar account:', error);
         accountExists = false;
-        
+
         // Return wallet without balance information rather than failing completely
         return {
           ...this.toWalletResponse(wallet),
@@ -595,23 +600,23 @@ export class InvisibleWalletService {
   private async fundTestnetAccount(publicKey: string): Promise<void> {
     try {
       const friendbotURL = STELLAR_NETWORKS.testnet.friendbotURL;
-      
+
       // Use retry logic for friendbot funding
       await makeNetworkRequest(async () => {
         const response = await Promise.race([
           fetch(`${friendbotURL}?addr=${publicKey}`),
           createTimeoutPromise<Response>(NETWORK_CONFIG.timeout)
         ]);
-        
+
         if (!response.ok) {
           const errorText = await response.text();
           console.warn('Failed to fund testnet account:', errorText);
           throw new Error(`Friendbot funding failed: ${response.status} ${errorText}`);
         }
-        
+
         return response;
       });
-      
+
       console.log('Testnet account funded successfully:', publicKey);
     } catch (error) {
       console.warn('Friendbot funding failed:', error);
@@ -695,5 +700,117 @@ export class InvisibleWalletService {
     } catch (error) {
       console.error('Failed to save audit log:', error);
     }
+  }
+
+  /**
+ * Establishes a USDC trustline for a wallet
+ */
+  async establishUSDCTrustline(
+    walletId: string,
+    email: string,
+    passphrase: string,
+    platformId: string
+  ): Promise<SignTransactionResponse> {
+    const wallet = await this.storage.getWalletById(walletId)
+    if (!wallet) throw new Error(InvisibleWalletError.WALLET_NOT_FOUND)
+
+    const privateKey = await this.decryptWalletKey(wallet, passphrase, platformId)
+    const server = createStellarServer(wallet.network)
+    if (!server) throw new Error(InvisibleWalletError.STELLAR_NETWORK_ERROR)
+
+    const { Asset, Operation, TransactionBuilder: TB } = await import('@stellar/stellar-sdk')
+    const usdcAsset = new Asset('USDC', USDC_ISSUERS[wallet.network])
+    const account = await server.loadAccount(wallet.publicKey)
+
+    const tx = new TB(account, {
+      fee: '100',
+      networkPassphrase: STELLAR_NETWORKS[wallet.network].networkPassphrase,
+    })
+      .addOperation(Operation.changeTrust({ asset: usdcAsset }))
+      .setTimeout(30)
+      .build()
+
+    const keypair = Keypair.fromSecret(privateKey)
+    tx.sign(keypair)
+
+    const result = await server.submitTransaction(tx)
+    return {
+      signedXDR: tx.toXDR(),
+      transactionHash: result.hash,
+      success: true,
+    }
+  }
+
+  /**
+   * Sends USDC to a destination address
+   */
+  async sendUSDC(params: {
+    walletId: string
+    email: string
+    passphrase: string
+    platformId: string
+    toAddress: string
+    amount: string
+  }): Promise<SignTransactionResponse> {
+    const wallet = await this.storage.getWalletById(params.walletId)
+    if (!wallet) throw new Error(InvisibleWalletError.WALLET_NOT_FOUND)
+
+    const privateKey = await this.decryptWalletKey(wallet, params.passphrase, params.platformId)
+    const server = createStellarServer(wallet.network)
+    if (!server) throw new Error(InvisibleWalletError.STELLAR_NETWORK_ERROR)
+
+    const { Asset, Operation, TransactionBuilder: TB } = await import('@stellar/stellar-sdk')
+    const usdcAsset = new Asset('USDC', USDC_ISSUERS[wallet.network])
+    const account = await server.loadAccount(wallet.publicKey)
+
+    // Guard: check trustline exists
+    const hasTrustline = account.balances.some(
+      b => (b as any).asset_code === 'USDC' &&
+        (b as any).asset_issuer === USDC_ISSUERS[wallet.network]
+    )
+    if (!hasTrustline) throw new Error(InvisibleWalletError.USDC_TRUSTLINE_NOT_FOUND)
+
+    const tx = new TB(account, {
+      fee: '100',
+      networkPassphrase: STELLAR_NETWORKS[wallet.network].networkPassphrase,
+    })
+      .addOperation(Operation.payment({
+        destination: params.toAddress,
+        asset: usdcAsset,
+        amount: params.amount,
+      }))
+      .setTimeout(30)
+      .build()
+
+    const keypair = Keypair.fromSecret(privateKey)
+    tx.sign(keypair)
+
+    const result = await server.submitTransaction(tx)
+    return {
+      signedXDR: tx.toXDR(),
+      transactionHash: result.hash,
+      success: true,
+    }
+  }
+
+  private async decryptWalletKey(
+    wallet: InvisibleWallet,
+    passphrase: string,
+    platformId: string
+  ): Promise<string> {
+    if (wallet.platformId !== platformId) throw new Error(InvisibleWalletError.UNAUTHORIZED_ORIGIN)
+
+    return CryptoService.decryptPrivateKey({
+      ciphertext: wallet.encryptedSecret,
+      salt: wallet.salt,
+      iv: wallet.iv,
+      metadata: {
+        algorithm: 'AES-256-GCM',
+        keyDerivation: 'PBKDF2',
+        iterations: 100000,
+        saltLength: 32,
+        ivLength: 16,
+      },
+    }, passphrase)
   }
 }

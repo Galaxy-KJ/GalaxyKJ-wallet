@@ -238,6 +238,18 @@ console.log('Signed transaction:', result.signedXDR);
 console.log('Transaction hash:', result.transactionHash);
 ```
 
+## USDC Quick Flow
+
+1. Create or recover a wallet on the demo (home page).
+2. Switch to the `USDC` tab in the demo UI.
+3. Click `Add USDC Trustline` (this calls `establishUSDCTrustline`).
+4. Enter a destination Stellar address and amount, then click `Send USDC` (this calls `sendUSDC`).
+5. Confirm the transaction hash returned in the result.
+
+Notes:
+- On `testnet` the demo may fund test accounts automatically; on `mainnet` you must fund the account first.
+- If `sendUSDC` fails with `NO_TRUSTLINE`, ensure the sender has an established trustline.
+
 ## 🔍 Validation
 
 ### Passphrase Validation
