@@ -1,11 +1,66 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
-import { WalletTransaction, Network } from '../types';
+import { WalletTransaction, Network, GalaxyKeystore } from '../types';
 
 export const GALAXY_CONFIG = {
     network: 'testnet' as const,
     horizonUrl: 'https://horizon-testnet.stellar.org',
     passphrase: 'Test SDF Network ; September 2015',
 };
+
+
+
+export async function exportWallet(walletId: string, passphrase: string): Promise<Blob> {
+    const response = await fetch('/api/wallet/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletId, password: passphrase })
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Export failed');
+
+    const keystore: GalaxyKeystore = data.keystore;
+
+    // Compute checksum (excluding the checksum field itself)
+    const { checksum, ...rest } = keystore;
+    const computedChecksum = await computeChecksum(rest);
+    keystore.checksum = computedChecksum;
+
+    const blob = new Blob([JSON.stringify(keystore, null, 2)], { type: 'application/json' });
+    return blob;
+}
+
+export async function importWallet(file: File, passphrase: string): Promise<any> {
+    const text = await file.text();
+    const keystore: GalaxyKeystore = JSON.parse(text);
+
+    // Validate checksum
+    const { checksum, ...rest } = keystore;
+    const computedChecksum = await computeChecksum(rest);
+    if (computedChecksum !== checksum) {
+        throw new Error('Checksum mismatch: File may be corrupted or tampered with');
+    }
+
+    // Call API to import/sync with backend
+    const response = await fetch('/api/wallet/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keystore, password: passphrase })
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Import failed');
+
+    return data;
+}
+
+async function computeChecksum(data: any): Promise<string> {
+    const s = JSON.stringify(data);
+    const msgUint8 = new TextEncoder().encode(s);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 export interface StellarAccountBalance {
     asset: string;
