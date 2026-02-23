@@ -19,14 +19,17 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }))
 
-// Mock crypto for tests
+// Add TextEncoder/TextDecoder for crypto tests
+import { TextEncoder, TextDecoder } from 'util';
+import { webcrypto } from 'crypto';
+
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+// Use Node.js webcrypto for real crypto operations in tests
 Object.defineProperty(global, 'crypto', {
-  value: {
-    getRandomValues: (arr) => arr.fill(1),
-    subtle: {
-      digest: jest.fn(),
-    },
-  },
+  value: webcrypto,
+  configurable: true,
 })
 
 // Mock navigator.clipboard
