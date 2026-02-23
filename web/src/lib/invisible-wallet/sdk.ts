@@ -487,7 +487,13 @@ export class InvisibleWalletSDK {
     email: string,
     passphrase: string
   ): Promise<SignTransactionResponse> {
-    return this.service.establishUSDCTrustline(walletId, email, passphrase, this.config.platformId)
+    try {
+      const result = await this.service.establishUSDCTrustline(walletId, email, passphrase, this.config.platformId);
+      return result;
+    } catch (error) {
+      await this.handleError('establishUSDCTrustline', error);
+      throw error;
+    }
   }
 
   async sendUSDC(params: {
@@ -497,7 +503,13 @@ export class InvisibleWalletSDK {
     toAddress: string
     amount: string
   }): Promise<SignTransactionResponse> {
-    return this.service.sendUSDC({ ...params, platformId: this.config.platformId })
+    try {
+      const result = await this.service.sendUSDC({ ...params, platformId: this.config.platformId });
+      return result;
+    } catch (error) {
+      await this.handleError('sendUSDC', error);
+      throw error;
+    }
   }
 }
 

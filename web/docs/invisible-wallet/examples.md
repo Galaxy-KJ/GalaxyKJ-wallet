@@ -1344,3 +1344,42 @@ export function MultiPlatformWalletManager() {
 ```
 
 These examples demonstrate the flexibility and power of the Invisible Wallets system across different use cases, from simple integrations to complex multi-platform applications. Each example includes proper error handling, user feedback, and follows React best practices.
+
+## USDC Examples
+
+### Add USDC Trustline (component example)
+
+```tsx
+// inside a React client component using the hook
+const handleAddTrustline = async () => {
+  if (!wallet) return;
+  try {
+    await establishUSDCTrustline(wallet.id, email, passphrase);
+    alert('USDC trustline established');
+  } catch (err) {
+    console.error('Trustline failed', err);
+  }
+}
+```
+
+### Send USDC (component example)
+
+```tsx
+const handleSendUSDC = async () => {
+  if (!wallet) return;
+  try {
+    const res = await sendUSDC({
+      walletId: wallet.id,
+      email,
+      passphrase,
+      toAddress: 'G...RECIPIENT',
+      amount: '10.00'
+    });
+    console.log('USDC sent, tx:', res.transactionHash);
+  } catch (err) {
+    console.error('SendUSDC failed', err);
+  }
+}
+```
+
+These snippets show the minimal flow to enable USDC and perform token transfers from a client-based integration.
