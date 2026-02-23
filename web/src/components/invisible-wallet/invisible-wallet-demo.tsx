@@ -42,6 +42,9 @@ export function InvisibleWalletDemo() {
     recoverWallet,
     getWallet,
     signTransaction,
+    establishUSDCTrustline,
+    sendUSDC,
+    usdcBalance,
     validatePassphrase,
     clearError,
     refreshWallet,
@@ -65,6 +68,9 @@ export function InvisibleWalletDemo() {
   } | null>(null);
   const [showSecretKey, setShowSecretKey] = useState(false);
 
+  const [sendUSDCForm, setSendUSDCForm] = useState({ toAddress: '', amount: '' })
+  const [usdcResult, setUsdcResult] = useState<string | null>(null)
+
   // Handle form input changes
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -81,7 +87,7 @@ export function InvisibleWalletDemo() {
         metadata: { source: 'demo', timestamp: new Date().toISOString() }
       });
       console.log('Wallet created:', result);
-      
+
       // Store the created wallet info to display keys
       setCreatedWallet({
         publicKey: result.publicKey,
@@ -135,6 +141,32 @@ export function InvisibleWalletDemo() {
     }
   };
 
+  const handleEstablishTrustline = async () => {
+    if (!wallet) return
+    try {
+      await establishUSDCTrustline(wallet.id, formData.email, formData.passphrase)
+      setUsdcResult('Trustline established successfully!')
+    } catch (error) {
+      console.error('Failed to establish trustline:', error)
+    }
+  }
+
+  const handleSendUSDC = async () => {
+    if (!wallet) return
+    try {
+      const result = await sendUSDC({
+        walletId: wallet.id,
+        email: formData.email,
+        passphrase: formData.passphrase,
+        toAddress: sendUSDCForm.toAddress,
+        amount: sendUSDCForm.amount,
+      })
+      setUsdcResult(`Sent! TX Hash: ${result.transactionHash}`)
+    } catch (error) {
+      console.error('Failed to send USDC:', error)
+    }
+  }
+
   // Copy to clipboard utility
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -177,9 +209,9 @@ export function InvisibleWalletDemo() {
           <AlertCircle className="h-4 w-4" />
           <div>
             <strong>Error:</strong> {error}
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="ml-2"
               onClick={clearError}
             >
@@ -194,9 +226,9 @@ export function InvisibleWalletDemo() {
         <Card className="p-6 bg-green-50 border-green-200">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-green-800">✅ Wallet Created Successfully!</h3>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setCreatedWallet(null)}
               className="text-green-700 border-green-300 hover:bg-green-100"
             >
@@ -215,7 +247,7 @@ export function InvisibleWalletDemo() {
                 </div>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label className="text-sm font-medium text-green-800">Public Key (Safe to share)</Label>
@@ -223,8 +255,8 @@ export function InvisibleWalletDemo() {
                   <code className="text-xs bg-white p-3 rounded border flex-1 font-mono">
                     {createdWallet.publicKey}
                   </code>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => copyToClipboard(createdWallet.publicKey)}
                     className="border-green-300 text-green-700 hover:bg-green-50"
@@ -233,7 +265,7 @@ export function InvisibleWalletDemo() {
                   </Button>
                 </div>
               </div>
-              
+
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <Label className="text-sm font-medium text-green-800">Private Key (Keep Secret!)</Label>
@@ -250,8 +282,8 @@ export function InvisibleWalletDemo() {
                   <code className="text-xs bg-white p-3 rounded border flex-1 font-mono">
                     {showSecretKey ? createdWallet.secretKey : '•'.repeat(56)}
                   </code>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => copyToClipboard(createdWallet.secretKey)}
                     disabled={!showSecretKey}
@@ -261,7 +293,7 @@ export function InvisibleWalletDemo() {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <Label className="text-sm font-medium text-green-800">Wallet ID</Label>
@@ -277,7 +309,7 @@ export function InvisibleWalletDemo() {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-semibold text-blue-800 mb-2">How to verify your wallet:</h4>
               <ol className="text-blue-700 text-sm space-y-1 list-decimal list-inside">
@@ -295,10 +327,30 @@ export function InvisibleWalletDemo() {
       {wallet && (
         <div className="space-y-4">
           <Card className="p-6">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-semibold">Current Wallet</h3>
                 <p className="text-sm text-gray-600">ID: {wallet.id}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={refreshWallet}>
+                Refresh Balance
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Public Key</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <code className="text-xs bg-gray-100 p-2 rounded flex-1">
+                    {wallet.publicKey}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(wallet.publicKey)}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={wallet.accountExists ? "default" : "secondary"}>
@@ -336,6 +388,7 @@ export function InvisibleWalletDemo() {
             <TabsTrigger value="recover">Recover Wallet</TabsTrigger>
             <TabsTrigger value="lookup">Lookup Wallet</TabsTrigger>
             <TabsTrigger value="sign">Sign Transaction</TabsTrigger>
+            <TabsTrigger value="usdc">USDC</TabsTrigger>
           </TabsList>
 
           {/* Common Form Fields */}
@@ -385,7 +438,7 @@ export function InvisibleWalletDemo() {
                   {showPassphrase ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
-              
+
               {/* Passphrase Validation */}
               {formData.passphrase && (
                 <div className="mt-2">
@@ -413,7 +466,7 @@ export function InvisibleWalletDemo() {
 
           <TabsContent value="create">
             <div className="mt-6">
-              <Button 
+              <Button
                 onClick={handleCreateWallet}
                 disabled={isLoading || !formData.email || !formData.passphrase || !passphraseValidation.isValid}
                 className="w-full"
@@ -422,7 +475,7 @@ export function InvisibleWalletDemo() {
                 Create Invisible Wallet
               </Button>
               <p className="text-sm text-gray-600 mt-2">
-                Creates a new Stellar wallet encrypted with your passphrase. 
+                Creates a new Stellar wallet encrypted with your passphrase.
                 On testnet, the account will be automatically funded.
               </p>
             </div>
@@ -430,7 +483,7 @@ export function InvisibleWalletDemo() {
 
           <TabsContent value="recover">
             <div className="mt-6">
-              <Button 
+              <Button
                 onClick={handleRecoverWallet}
                 disabled={isLoading || !formData.email || !formData.passphrase}
                 className="w-full"
@@ -446,7 +499,7 @@ export function InvisibleWalletDemo() {
 
           <TabsContent value="lookup">
             <div className="mt-6">
-              <Button 
+              <Button
                 onClick={handleGetWallet}
                 disabled={isLoading || !formData.email}
                 className="w-full"
@@ -472,8 +525,8 @@ export function InvisibleWalletDemo() {
                   onChange={(e) => setTransactionXDR(e.target.value)}
                 />
               </div>
-              
-              <Button 
+
+              <Button
                 onClick={handleSignTransaction}
                 disabled={isLoading || !wallet || !transactionXDR.trim() || !formData.passphrase}
                 className="w-full"
@@ -517,10 +570,81 @@ export function InvisibleWalletDemo() {
                   </div>
                 </div>
               )}
-              
+
               <p className="text-sm text-gray-600">
                 Signs a Stellar transaction with the wallet&apos;s private key.
               </p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="usdc">
+            <div className="mt-6 space-y-6">
+
+              {/* USDC Balance */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <Label className="font-medium text-blue-800">USDC Balance</Label>
+                <p className="text-2xl font-bold text-blue-900 mt-1">
+                  {usdcBalance ?? <span className="text-sm font-normal text-blue-600">No trustline — USDC not enabled</span>}
+                  {usdcBalance && ' USDC'}
+                </p>
+              </div>
+
+              {/* Establish Trustline */}
+              <div className="space-y-2">
+                <h4 className="font-medium">Step 1: Add USDC Trustline</h4>
+                <p className="text-sm text-gray-600">
+                  Required before your wallet can receive USDC. Only needed once per wallet.
+                </p>
+                <Button
+                  onClick={handleEstablishTrustline}
+                  disabled={isLoading || !wallet || !formData.passphrase}
+                  variant="outline"
+                  className="w-full"
+                >
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Add USDC Trustline
+                </Button>
+              </div>
+
+              {/* Send USDC */}
+              <div className="space-y-3">
+                <h4 className="font-medium">Step 2: Send USDC</h4>
+                <div>
+                  <Label htmlFor="usdc-to">Destination Address</Label>
+                  <Input
+                    id="usdc-to"
+                    placeholder="G..."
+                    value={sendUSDCForm.toAddress}
+                    onChange={(e) => setSendUSDCForm(prev => ({ ...prev, toAddress: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="usdc-amount">Amount</Label>
+                  <Input
+                    id="usdc-amount"
+                    type="number"
+                    placeholder="10.00"
+                    value={sendUSDCForm.amount}
+                    onChange={(e) => setSendUSDCForm(prev => ({ ...prev, amount: e.target.value }))}
+                  />
+                </div>
+                <Button
+                  onClick={handleSendUSDC}
+                  disabled={isLoading || !wallet || !sendUSDCForm.toAddress || !sendUSDCForm.amount || !formData.passphrase}
+                  className="w-full"
+                >
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Send USDC
+                </Button>
+              </div>
+
+              {/* Result */}
+              {usdcResult && (
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <div>{usdcResult}</div>
+                </Alert>
+              )}
             </div>
           </TabsContent>
         </Tabs>

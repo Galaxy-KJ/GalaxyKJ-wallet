@@ -17,22 +17,22 @@ export { InvisibleWalletService } from './wallet-service';
 export type { WalletStorage } from './wallet-service';
 
 // SDK
-export { 
-  InvisibleWalletSDK, 
-  createInvisibleWalletSDK 
+export {
+  InvisibleWalletSDK,
+  createInvisibleWalletSDK
 } from './sdk';
-export type { 
-  SDKConfig, 
-  WalletEventData, 
-  WalletEventType, 
-  WalletEventListener 
+export type {
+  SDKConfig,
+  WalletEventData,
+  WalletEventType,
+  WalletEventListener
 } from './sdk';
 
 // React hooks
-export { 
-  useInvisibleWallet, 
-  useWalletBalance, 
-  usePassphraseValidation 
+export {
+  useInvisibleWallet,
+  useWalletBalance,
+  usePassphraseValidation
 } from '@/hooks/use-invisible-wallet';
 
 // Demo component
@@ -51,7 +51,7 @@ export const INVISIBLE_WALLET_PRESETS = {
     defaultNetwork: 'testnet' as const,
     debug: true,
   },
-  
+
   /**
    * Production preset for live applications
    */
@@ -60,7 +60,7 @@ export const INVISIBLE_WALLET_PRESETS = {
     defaultNetwork: 'mainnet' as const,
     debug: false,
   },
-  
+
   /**
    * Demo preset for showcasing features
    */
@@ -81,14 +81,14 @@ export const InvisibleWalletUtils = {
   isValidPublicKey(publicKey: string): boolean {
     return /^G[A-Z2-7]{55}$/.test(publicKey);
   },
-  
+
   /**
    * Validates if a string is a valid Stellar secret key
    */
   isValidSecretKey(secretKey: string): boolean {
     return /^S[A-Z2-7]{55}$/.test(secretKey);
   },
-  
+
   /**
    * Formats a public key for display (truncated)
    */
@@ -96,7 +96,7 @@ export const InvisibleWalletUtils = {
     if (!this.isValidPublicKey(publicKey)) return publicKey;
     return `${publicKey.slice(0, length)}...${publicKey.slice(-length)}`;
   },
-  
+
   /**
    * Validates email format
    */
@@ -104,7 +104,7 @@ export const InvisibleWalletUtils = {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   },
-  
+
   /**
    * Generates a platform ID with proper formatting
    */
@@ -112,7 +112,7 @@ export const InvisibleWalletUtils = {
     const sanitized = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
     return `${sanitized}-${environment}`;
   },
-  
+
   /**
    * Converts Stellar stroops to XLM
    */
@@ -120,7 +120,7 @@ export const InvisibleWalletUtils = {
     const num = parseFloat(stroops) / 10000000; // 1 XLM = 10^7 stroops
     return num.toFixed(7);
   },
-  
+
   /**
    * Converts XLM to Stellar stroops
    */
@@ -140,15 +140,15 @@ export const InvisibleWalletErrorHandler = {
   isInvisibleWalletError(error: unknown, errorType: string): boolean {
     return error instanceof Error && error.message.includes(errorType);
   },
-  
+
   /**
    * Extracts user-friendly error messages
    */
   getUserFriendlyMessage(error: unknown): string {
     if (!error) return 'Unknown error occurred';
-    
+
     const message = error instanceof Error ? error.message : String(error);
-    
+
     // Map technical errors to user-friendly messages
     const errorMap: Record<string, string> = {
       'INVALID_PASSPHRASE': 'The passphrase you entered is incorrect.',
@@ -163,13 +163,13 @@ export const InvisibleWalletErrorHandler = {
       'INVALID_TRANSACTION_XDR': 'The transaction data is invalid or corrupted.',
       'RATE_LIMIT_EXCEEDED': 'Too many requests. Please wait and try again.',
     };
-    
+
     for (const [errorCode, userMessage] of Object.entries(errorMap)) {
       if (message.includes(errorCode)) {
         return userMessage;
       }
     }
-    
+
     return 'An unexpected error occurred. Please try again.';
   },
 };
@@ -178,7 +178,7 @@ export const InvisibleWalletErrorHandler = {
  * Version information
  */
 export const INVISIBLE_WALLET_VERSION = {
-  version: '1.0.0',
+  version: '1.1.0',
   build: Date.now(),
   features: [
     'AES-256-GCM Encryption',

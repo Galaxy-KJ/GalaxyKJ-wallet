@@ -27,11 +27,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { generateStellarUri } from "@/lib/stellar/sep0007";
 
 export function ReceiveForm() {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [selectedToken, setSelectedToken] = useState("XLM");
+  const [requestAmount, setRequestAmount] = useState("");
+  const [requestMemo, setRequestMemo] = useState("");
+  const [isPaymentRequest, setIsPaymentRequest] = useState(false);
+  const [paymentRequestUri, setPaymentRequestUri] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
 
   const publicKey = useWalletStore((state) => state.publicKey);
@@ -42,12 +48,13 @@ export function ReceiveForm() {
     ? `${publicKey.substring(0, 8)}...${publicKey.substring(publicKey.length - 8)}`
     : "No wallet connected";
 
-  // Generar código QR cuando cambie la clave pública
+  // Generar código QR cuando cambie la clave pública o URI de request
   useEffect(() => {
     const generateQR = async () => {
-      if (publicKey) {
+      const targetData = isPaymentRequest ? paymentRequestUri : publicKey;
+      if (targetData) {
         try {
-          const dataUrl = await QRCode.toDataURL(publicKey, {
+          const dataUrl = await QRCode.toDataURL(targetData, {
             width: 256,
             margin: 2,
             color: {
@@ -63,7 +70,35 @@ export function ReceiveForm() {
     };
 
     generateQR();
-  }, [publicKey]);
+  }, [publicKey, paymentRequestUri, isPaymentRequest]);
+
+  const handleGenerateRequest = () => {
+    if (!publicKey) return;
+    const uri = generateStellarUri({
+      destination: publicKey,
+      amount: requestAmount || undefined,
+      assetCode: selectedToken !== "XLM" ? selectedToken : undefined,
+      memo: requestMemo || undefined,
+    });
+    setPaymentRequestUri(uri);
+    setIsPaymentRequest(true);
+    setIsDialogOpen(false);
+    toast({
+      title: "Request Generated",
+      description: "QR Code updated to payment request",
+    });
+  };
+
+  const handleClearRequest = () => {
+    setIsPaymentRequest(false);
+    setPaymentRequestUri("");
+    setRequestAmount("");
+    setRequestMemo("");
+    toast({
+      title: "Request Cleared",
+      description: "Showing standard wallet address",
+    });
+  };
 
   const handleCopyAddress = () => {
     if (!publicKey) {
@@ -140,7 +175,9 @@ export function ReceiveForm() {
       <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#4F46E5]/10 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none"></div>
 
       <div className="space-y-6 relative z-10">
-        <div className="text-gray-400 text-sm text-center">{shortAddress}</div>
+        <div className="text-gray-400 text-sm text-center">
+          {isPaymentRequest ? "Payment Request" : shortAddress}
+        </div>
 
         <div className="flex flex-col items-center">
           <div className="w-64 h-64 bg-white p-4 rounded-lg mb-4 shadow-lg flex items-center justify-center">
@@ -158,6 +195,17 @@ export function ReceiveForm() {
               </div>
             )}
           </div>
+
+          {isPaymentRequest && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearRequest}
+              className="mb-2 text-gray-400 hover:text-white"
+            >
+              Show Normal Address instead
+            </Button>
+          )}
 
           <div className="flex gap-2 mb-4">
             <Button
@@ -246,11 +294,13 @@ export function ReceiveForm() {
           )}
         </div>
 
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button className="w-full h-12 bg-gradient-to-r from-[#3B82F6] to-[#9333EA] hover:from-[#4F46E5] hover:to-[#7C3AED] shadow-lg">
               <Plus className="mr-2 h-4 w-4" />
-              Create Payment Request
+              {isPaymentRequest
+                ? "Update Payment Request"
+                : "Create Payment Request"}
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-gray-900 text-white">
@@ -293,6 +343,8 @@ export function ReceiveForm() {
                   id="request-amount"
                   type="number"
                   placeholder="0.00"
+                  value={requestAmount}
+                  onChange={(e) => setRequestAmount(e.target.value)}
                   className="bg-gray-800 text-white pr-16"
                 />
               </div>
@@ -302,13 +354,18 @@ export function ReceiveForm() {
                 <Input
                   id="request-memo"
                   placeholder="Payment for..."
+                  value={requestMemo}
+                  onChange={(e) => setRequestMemo(e.target.value)}
                   className="bg-gray-800 text-white"
                 />
               </div>
             </div>
 
             <DialogFooter>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+              <Button
+                onClick={handleGenerateRequest}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
                 Generate Request
               </Button>
             </DialogFooter>

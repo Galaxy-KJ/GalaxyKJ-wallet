@@ -5,7 +5,7 @@
  * to integrate with the Invisible Wallet system without handling Stellar complexity.
  */
 
-import { 
+import {
   CreateWalletRequest,
   RecoverWalletRequest,
   WalletResponse,
@@ -13,9 +13,13 @@ import {
   WalletWithBalance,
   SignTransactionRequest,
   SignTransactionResponse,
-  NetworkType
+  NetworkType,
+  InvokeContractRequest,
+  ContractInvocationResponse,
 } from '@/types/invisible-wallet';
 import { InvisibleWalletService, WalletStorage } from './wallet-service';
+import { SorobanUtils } from './soroban-utils';
+import { createContractPresets } from './contract-presets';
 
 export interface SDKConfig {
   /** API endpoint for server-side operations */
@@ -42,7 +46,7 @@ export interface WalletEventData {
 /**
  * Event types that can be emitted by the SDK
  */
-export type WalletEventType = 
+export type WalletEventType =
   | 'walletCreated'
   | 'walletRecovered'
   | 'transactionSigned'
@@ -63,18 +67,18 @@ class BrowserWalletStorage implements WalletStorage {
   private async getDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.version);
-      
+
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result);
-      
+
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        
+
         if (!db.objectStoreNames.contains('wallets')) {
           const walletStore = db.createObjectStore('wallets', { keyPath: 'id' });
           walletStore.createIndex('email-platform-network', ['email', 'platformId', 'network'], { unique: true });
         }
-        
+
         if (!db.objectStoreNames.contains('auditLogs')) {
           db.createObjectStore('auditLogs', { keyPath: 'id' });
         }
@@ -100,7 +104,7 @@ class BrowserWalletStorage implements WalletStorage {
     const transaction = db.transaction(['wallets'], 'readonly');
     const store = transaction.objectStore('wallets');
     const index = store.index('email-platform-network');
-    
+
     return new Promise((resolve, reject) => {
       const request = index.get([email, platformId, network]);
       request.onsuccess = () => resolve(request.result || null);
@@ -113,7 +117,7 @@ class BrowserWalletStorage implements WalletStorage {
     const db = await this.getDB();
     const transaction = db.transaction(['wallets'], 'readonly');
     const store = transaction.objectStore('wallets');
-    
+
     return new Promise((resolve, reject) => {
       const request = store.get(id);
       request.onsuccess = () => resolve(request.result || null);
@@ -313,7 +317,7 @@ export class InvisibleWalletSDK {
   ): Promise<WalletWithBalance | null> {
     try {
       const network = options?.network || this.config.defaultNetwork || 'testnet';
-      
+
       const wallet = await this.service.getWalletWithBalance(
         email,
         this.config.platformId,
@@ -379,31 +383,31 @@ export class InvisibleWalletSDK {
   validatePassphrase(passphrase: string): { isValid: boolean; errors: string[] } {
     // Basic validation - mirrors crypto service validation
     const errors: string[] = [];
-    
+
     if (passphrase.length < 8) {
       errors.push('Passphrase must be at least 8 characters long');
     }
-    
+
     if (passphrase.length > 128) {
       errors.push('Passphrase must not exceed 128 characters');
     }
-    
+
     if (!/[a-z]/.test(passphrase)) {
       errors.push('Passphrase must contain at least one lowercase letter');
     }
-    
+
     if (!/[A-Z]/.test(passphrase)) {
       errors.push('Passphrase must contain at least one uppercase letter');
     }
-    
+
     if (!/\d/.test(passphrase)) {
       errors.push('Passphrase must contain at least one number');
     }
-    
+
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(passphrase)) {
       errors.push('Passphrase must contain at least one special character');
     }
-    
+
     return {
       isValid: errors.length === 0,
       errors
@@ -480,6 +484,105 @@ export class InvisibleWalletSDK {
    */
   isConfigured(): boolean {
     return !!this.config.platformId;
+  }
+
+  async establishUSDCTrustline(
+    walletId: string,
+    email: string,
+    passphrase: string
+  ): Promise<SignTransactionResponse> {
+    try {
+      const result = await this.service.establishUSDCTrustline(walletId, email, passphrase, this.config.platformId);
+      return result;
+    } catch (error) {
+      await this.handleError('establishUSDCTrustline', error);
+      throw error;
+    }
+  }
+
+  async sendUSDC(params: {
+    walletId: string
+    email: string
+    passphrase: string
+    toAddress: string
+    amount: string
+  }): Promise<SignTransactionResponse> {
+    try {
+      const result = await this.service.sendUSDC({ ...params, platformId: this.config.platformId });
+      return result;
+    } catch (error) {
+      await this.handleError('sendUSDC', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Invokes a Soroban smart contract method
+   */
+  async invokeContract(
+    walletId: string,
+    email: string,
+    passphrase: string,
+    contractId: string,
+    method: string,
+    args: (string | number | boolean | bigint)[],
+    options?: {
+      network?: NetworkType;
+      simulateOnly?: boolean;
+    }
+  ): Promise<ContractInvocationResponse> {
+    try {
+      const network = options?.network || this.config.defaultNetwork || 'testnet';
+
+      // Encode arguments to ScVal XDR
+      const encodedArgs = SorobanUtils.encodeArgs(args);
+
+      const request: InvokeContractRequest = {
+        walletId,
+        email,
+        passphrase,
+        contractId,
+        method,
+        args: encodedArgs,
+        network,
+        platformId: this.config.platformId,
+        simulateOnly: options?.simulateOnly,
+      };
+
+      const result = await this.service.invokeContract(request);
+
+      if (result.success && !options?.simulateOnly) {
+        // Emit event for successful contract invocation
+        this.emit('transactionSigned', {
+          walletId,
+          transactionHash: result.transactionHash,
+          signedXDR: result.signedXDR,
+        });
+
+        if (this.config.debug) {
+          console.log('Contract invoked successfully:', result.transactionHash);
+        }
+      }
+
+      return result;
+    } catch (error) {
+      this.handleError('invokeContract', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Provides helper utilities for Soroban contract interaction
+   */
+  get soroban() {
+    return SorobanUtils;
+  }
+
+  /**
+   * Provides pre-configured contract presets for common contracts
+   */
+  get contracts() {
+    return createContractPresets(this);
   }
 }
 
