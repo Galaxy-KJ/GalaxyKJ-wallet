@@ -1,8 +1,9 @@
 import { useWalletStore } from './use-wallet-store';
 import { useState } from 'react';
+import { unlockWithBiometric as sdkUnlockWithBiometric } from '@/lib/galaxy-sdk';
 
 export function useWallet() {
-    const { walletId, address, isConnected, network, connect, disconnect, setNetwork } = useWalletStore();
+    const { walletId: storedWalletId, address, isConnected, network, connect, disconnect, setNetwork } = useWalletStore();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -48,18 +49,39 @@ export function useWallet() {
         }
     };
 
+    const biometricUnlock = async () => {
+        if (!storedWalletId) {
+            setError('No wallet previously connected');
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        try {
+            const result = await sdkUnlockWithBiometric(storedWalletId);
+            connect(result.walletId, result.publicKey);
+            console.log('✅ Biometric Unlock Success:', result.walletId);
+        } catch (err: any) {
+            console.error('Biometric Error:', err);
+            setError(err.message || 'Biometric authentication failed');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const switchNetwork = (newNetwork: 'mainnet' | 'testnet') => {
         setNetwork(newNetwork);
     };
 
     return {
-        walletId,
+        walletId: storedWalletId,
         address,
         isConnected,
         network,
         loading,
         error,
         connectWallet,
+        biometricUnlock,
         disconnect,
         switchNetwork,
     };
