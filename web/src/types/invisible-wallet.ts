@@ -171,20 +171,29 @@ export interface AuditLogEntry {
 }
 
 /**
- * Stellar account balance
+ * Stellar account asset balance (native XLM and trustline assets)
  */
-export interface StellarBalance {
+export interface AssetBalance {
   balance: string;
   assetType: string;
-  assetCode?: string;
+  assetCode: string;
   assetIssuer?: string;
+  buyingLiabilities?: string;
+  sellingLiabilities?: string;
+  authorized?: boolean;
+  authorizedToMaintainLiabilities?: boolean;
+  clawbackEnabled?: boolean;
+  limit?: string;
 }
+
+// Backward compatible alias used by older call sites.
+export type StellarBalance = AssetBalance;
 
 /**
  * Enhanced wallet info with Stellar account data
  */
 export interface WalletWithBalance extends WalletResponse {
-  balances: StellarBalance[];
+  balances: AssetBalance[];
   sequence: string;
   accountExists: boolean;
 }
