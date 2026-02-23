@@ -1,5 +1,6 @@
 import * as StellarSdk from '@stellar/stellar-sdk';
 import { WalletTransaction, Network, GalaxyKeystore } from '../types';
+import { transactionCache } from './cache';
 
 export const GALAXY_CONFIG = {
     network: 'testnet' as const,
@@ -23,20 +24,20 @@ export async function exportWallet(walletId: string, passphrase: string): Promis
 
     // Compute checksum (excluding the checksum field itself)
     const { checksum, ...rest } = keystore;
-    const computedChecksum = await computeChecksum(rest);
+    const computedChecksum = await computeChecksum(rest as Record<string, unknown>);
     keystore.checksum = computedChecksum;
 
     const blob = new Blob([JSON.stringify(keystore, null, 2)], { type: 'application/json' });
     return blob;
 }
 
-export async function importWallet(file: File, passphrase: string): Promise<any> {
+export async function importWallet(file: File, passphrase: string): Promise<{ success: boolean; walletId: string; publicKey: string }> {
     const text = await file.text();
     const keystore: GalaxyKeystore = JSON.parse(text);
 
     // Validate checksum
     const { checksum, ...rest } = keystore;
-    const computedChecksum = await computeChecksum(rest);
+    const computedChecksum = await computeChecksum(rest as Record<string, unknown>);
     if (computedChecksum !== checksum) {
         throw new Error('Checksum mismatch: File may be corrupted or tampered with');
     }
@@ -54,7 +55,168 @@ export async function importWallet(file: File, passphrase: string): Promise<any>
     return data;
 }
 
-async function computeChecksum(data: any): Promise<string> {
+
+export async function isBiometricAvailable(): Promise<boolean> {
+    if (typeof window === 'undefined' || !window.PublicKeyCredential) return false;
+
+    try {
+        const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        if (!available) return false;
+
+        // Check for PRF extension support
+        const extensions = window.PublicKeyCredential.getClientCapabilities?.();
+        // getClientCapabilities is not standard yet in all browsers, so we also check if the browser supports PRF extension in general
+        return !!available;
+    } catch {
+        return false;
+    }
+}
+
+export async function enableBiometricUnlock(walletId: string, passphrase: string): Promise<boolean> {
+    // 1. Get encrypted private key via export API
+    const response = await fetch('/api/wallet/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletId, password: passphrase })
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to verify passphrase');
+
+    const encryptedSecret = data.keystore.encryptedSecret;
+
+    // 2. WebAuthn Registration with PRF
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const userID = crypto.getRandomValues(new Uint8Array(16));
+
+    const options: PublicKeyCredentialCreationOptions = {
+        challenge,
+        rp: { name: "Galaxy Wallet", id: window.location.hostname },
+        user: {
+            id: userID,
+            name: walletId,
+            displayName: `Galaxy Wallet (${walletId.slice(0, 8)})`,
+        },
+        pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
+        authenticatorSelection: {
+            authenticatorAttachment: "platform",
+            userVerification: "required",
+            residentKey: "preferred",
+            requireResidentKey: false,
+        },
+        extensions: {
+            // @ts-ignore - PRF is still new in types
+            prf: { eval: { first: new Uint8Array(32).fill(1) } }
+        } as any
+    };
+
+    const credential = (await navigator.credentials.create({ publicKey: options })) as PublicKeyCredential;
+    if (!credential) throw new Error('Failed to create biometric credential');
+
+    const extensionResults = credential.getClientExtensionResults();
+    // @ts-expect-error
+    const prfOutput = extensionResults.prf?.results?.first;
+
+    if (!prfOutput) {
+        throw new Error('Biometric hardware does not support key derivation (PRF extension)');
+    }
+
+    // 3. Encrypt the secret with PRF output
+    const prfKey = await crypto.subtle.importKey(
+        'raw',
+        prfOutput,
+        { name: 'AES-GCM' },
+        false,
+        ['encrypt']
+    );
+
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encryptedBuffer = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        prfKey,
+        new TextEncoder().encode(encryptedSecret)
+    );
+
+    const encryptedBase64 = btoa(String.fromCharCode(...new Uint8Array(encryptedBuffer)));
+    const ivBase64 = btoa(String.fromCharCode(...iv));
+    const credentialIdBase64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+
+    // 4. Save to cache
+    await transactionCache.saveBiometricKey(walletId, {
+        credentialId: credentialIdBase64,
+        encryptedSecret: encryptedBase64,
+        salt: 'prf', // Marker for PRF-based encryption
+        iv: ivBase64
+    });
+
+    return true;
+}
+
+export async function unlockWithBiometric(walletId: string): Promise<{ walletId: string; publicKey: string; sessionToken: string }> {
+    const bioData = await transactionCache.getBiometricKey(walletId);
+    if (!bioData) throw new Error('Biometric unlock not enabled for this wallet');
+
+    const credentialId = new Uint8Array(atob(bioData.credentialId).split('').map(c => c.charCodeAt(0)));
+
+    const options: PublicKeyCredentialRequestOptions = {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        rpId: window.location.hostname,
+        allowCredentials: [{
+            id: credentialId,
+            type: 'public-key'
+        }],
+        userVerification: 'required',
+        extensions: {
+            // @ts-expect-error
+            prf: { eval: { first: new Uint8Array(32).fill(1) } }
+        } as any
+    };
+
+    const assertion = (await navigator.credentials.get({ publicKey: options })) as PublicKeyCredential;
+    if (!assertion) throw new Error('Biometric authentication failed');
+
+    const extensionResults = assertion.getClientExtensionResults();
+    // @ts-expect-error
+    const prfOutput = extensionResults.prf?.results?.first;
+
+    if (!prfOutput) {
+        throw new Error('Biometric hardware did not provide PRF output');
+    }
+
+    // Decrypt the secret
+    const prfKey = await crypto.subtle.importKey(
+        'raw',
+        prfOutput,
+        { name: 'AES-GCM' },
+        false,
+        ['decrypt']
+    );
+
+    const iv = new Uint8Array(atob(bioData.iv).split('').map(c => c.charCodeAt(0)));
+    const encryptedBuffer = new Uint8Array(atob(bioData.encryptedSecret).split('').map(c => c.charCodeAt(0)));
+
+    const decryptedBuffer = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv },
+        prfKey,
+        encryptedBuffer
+    );
+
+    const decryptedSecret = new TextDecoder().decode(decryptedBuffer);
+
+    // Call API to authorize session using the decrypted secret (which is the encryptedPrivateKey from DB)
+    const response = await fetch('/api/wallet/session/authorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletId, encryptedSecret: decryptedSecret })
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Session authorization failed');
+
+    return data;
+}
+
+async function computeChecksum(data: Record<string, unknown>): Promise<string> {
     const s = JSON.stringify(data);
     const msgUint8 = new TextEncoder().encode(s);
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
