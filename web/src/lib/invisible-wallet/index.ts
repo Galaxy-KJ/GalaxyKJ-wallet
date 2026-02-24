@@ -16,6 +16,16 @@ export type { EncryptionResult, DecryptionInput } from './crypto-service';
 export { InvisibleWalletService } from './wallet-service';
 export type { WalletStorage } from './wallet-service';
 
+// Storage adapters
+export {
+  SupabaseWalletStorage,
+  PostgresWalletStorage,
+} from './adapters';
+export type {
+  SupabaseWalletStorageOptions,
+  PostgresWalletStorageOptions,
+} from './adapters';
+
 // SDK
 export {
   InvisibleWalletSDK,

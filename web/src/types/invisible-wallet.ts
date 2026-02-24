@@ -17,6 +17,8 @@ export interface InvisibleWallet {
   id: string;
   /** User email identifier */
   email: string;
+  /** SHA-256 hash of the email (server-side storage, no PII) */
+  emailHash?: string;
   /** Stellar public key (G...) */
   publicKey: string;
   /** AES-256-GCM encrypted private key */
