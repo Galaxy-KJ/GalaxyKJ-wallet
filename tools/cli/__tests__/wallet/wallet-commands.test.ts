@@ -3,6 +3,11 @@ import * as os from 'os';
 
 // --- Mocks ---
 
+// Mock inquirer (not used in non-interactive tests)
+jest.mock('inquirer', () => ({
+  prompt: jest.fn(),
+}));
+
 // In-memory keytar mock
 const secretStore = new Map<string, string>();
 jest.mock('keytar', () => ({
