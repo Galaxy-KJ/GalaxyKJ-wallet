@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ForgotPassphraseFlow } from '@/components/invisible-wallet/forgot-passphrase-flow';
 import { WalletDashboard } from '@/components/wallet-dashboard';
 import { useInvisibleWallet } from '@/hooks/use-invisible-wallet';
 import { NetworkType } from '@/types/invisible-wallet';
@@ -87,6 +88,23 @@ export function InvisibleWalletDemo() {
         metadata: { source: 'demo', timestamp: new Date().toISOString() }
       });
       console.log('Wallet created:', result);
+
+      try {
+        await fetch('/api/recovery/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            platformId: DEMO_CONFIG.platformId,
+            network: formData.network,
+            publicKey: result.publicKey,
+            secretKey: result.secretKey,
+            passphrase: formData.passphrase,
+          }),
+        });
+      } catch (registerError) {
+        console.warn('Recovery register failed:', registerError);
+      }
 
       // Store the created wallet info to display keys
       setCreatedWallet({
@@ -494,6 +512,13 @@ export function InvisibleWalletDemo() {
               <p className="text-sm text-gray-600 mt-2">
                 Recovers an existing wallet using your email and passphrase.
               </p>
+
+              <ForgotPassphraseFlow
+                email={formData.email}
+                network={formData.network}
+                platformId={DEMO_CONFIG.platformId}
+                validatePassphrase={validatePassphrase}
+              />
             </div>
           </TabsContent>
 
