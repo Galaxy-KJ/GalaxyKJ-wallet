@@ -16,6 +16,7 @@ import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ForgotPassphraseFlow } from '@/components/invisible-wallet/forgot-passphrase-flow';
+import { WalletDashboard } from '@/components/wallet-dashboard';
 import { useInvisibleWallet } from '@/hooks/use-invisible-wallet';
 import { NetworkType } from '@/types/invisible-wallet';
 import { Loader2, CheckCircle, AlertCircle, Eye, EyeOff, Copy } from 'lucide-react';
@@ -342,61 +343,55 @@ export function InvisibleWalletDemo() {
 
       {/* Current Wallet Display */}
       {wallet && (
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Current Wallet</h3>
-            <Button variant="outline" size="sm" onClick={refreshWallet}>
-              Refresh Balance
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm font-medium">Public Key</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <code className="text-xs bg-gray-100 p-2 rounded flex-1">
-                  {wallet.publicKey}
-                </code>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(wallet.publicKey)}
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
+        <div className="space-y-4">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">Current Wallet</h3>
+                <p className="text-sm text-gray-600">ID: {wallet.id}</p>
               </div>
+              <Button variant="outline" size="sm" onClick={refreshWallet}>
+                Refresh Balance
+              </Button>
             </div>
-            <div>
-              <Label className="text-sm font-medium">Wallet ID</Label>
-              <code className="text-xs bg-gray-100 p-2 rounded block mt-1">
-                {wallet.id}
-              </code>
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Status</Label>
-              <div className="mt-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm font-medium">Public Key</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <code className="text-xs bg-gray-100 p-2 rounded flex-1">
+                    {wallet.publicKey}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(wallet.publicKey)}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
                 <Badge variant={wallet.accountExists ? "default" : "secondary"}>
                   {wallet.accountExists ? "Account Exists" : "Account Not Found"}
                 </Badge>
+                <Button variant="outline" size="sm" onClick={refreshWallet}>
+                  Refresh Balance
+                </Button>
               </div>
             </div>
-            <div>
-              <Label className="text-sm font-medium">Balances</Label>
-              <div className="mt-1 space-y-1">
-                {wallet.balances.length > 0 ? (
-                  wallet.balances.map((balance, index) => (
-                    <div key={index} className="text-sm">
-                      <Badge variant="outline">
-                        {balance.balance} {balance.assetCode || 'XLM'}
-                      </Badge>
-                    </div>
-                  ))
-                ) : (
-                  <span className="text-sm text-gray-500">No balances</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </Card>
+          </Card>
+
+          <WalletDashboard
+            wallet={wallet}
+            isLoading={isLoading}
+            onAddAsset={() => {
+              console.info('Add trustline requested for wallet:', wallet.publicKey);
+            }}
+            onSendAsset={(asset) => {
+              console.info('Send requested for asset:', asset.assetCode, 'issuer:', asset.assetIssuer);
+            }}
+          />
+        </div>
       )}
 
       {/* Main Interface */}

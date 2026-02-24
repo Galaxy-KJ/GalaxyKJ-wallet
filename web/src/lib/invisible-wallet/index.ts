@@ -37,6 +37,7 @@ export {
 
 // Demo component
 export { InvisibleWalletDemo } from '@/components/invisible-wallet/invisible-wallet-demo';
+export { WalletDashboard } from '@/components/wallet-dashboard';
 
 /**
  * Quick start configuration for common use cases

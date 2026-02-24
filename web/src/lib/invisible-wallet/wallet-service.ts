@@ -27,7 +27,7 @@ import {
   NetworkType,
   InvisibleWalletError,
   AuditLogEntry,
-  StellarBalance,
+  AssetBalance,
   InvokeContractRequest,
   ContractInvocationResponse,
 } from '@/types/invisible-wallet';
@@ -202,6 +202,43 @@ export class InvisibleWalletService {
 
   constructor(storage?: WalletStorage) {
     this.storage = storage || new MemoryWalletStorage();
+  }
+
+  /**
+   * Returns all Stellar assets (native + trustlines) for an account.
+   */
+  async getAllAssets(publicKey: string, network: NetworkType): Promise<AssetBalance[]> {
+    const server = createStellarServer(network);
+
+    if (!server) {
+      throw new Error('Unable to initialize Stellar Horizon server');
+    }
+
+    const account = await makeNetworkRequest(async () => {
+      return await Promise.race([
+        server.loadAccount(publicKey),
+        createTimeoutPromise<never>(NETWORK_CONFIG.timeout),
+      ]);
+    });
+
+    return account.balances.map(balance => {
+      const details = balance as unknown as Record<string, unknown>;
+      const isNative = balance.asset_type === 'native';
+
+      return {
+        balance: balance.balance,
+        assetType: balance.asset_type,
+        assetCode: isNative ? 'XLM' : (details.asset_code as string),
+        assetIssuer: isNative ? undefined : (details.asset_issuer as string),
+        buyingLiabilities: (details.buying_liabilities as string) || '0',
+        sellingLiabilities: (details.selling_liabilities as string) || '0',
+        authorized: details.is_authorized as boolean | undefined,
+        authorizedToMaintainLiabilities:
+          details.is_authorized_to_maintain_liabilities as boolean | undefined,
+        clawbackEnabled: details.is_clawback_enabled as boolean | undefined,
+        limit: details.limit as string | undefined,
+      };
+    });
   }
 
   /**
@@ -565,7 +602,7 @@ export class InvisibleWalletService {
         };
       }
 
-      let balances: StellarBalance[] = [];
+      let balances: AssetBalance[] = [];
       let sequence = '0';
       let accountExists = false;
 
@@ -581,12 +618,7 @@ export class InvisibleWalletService {
         accountExists = true;
         sequence = account.sequence;
 
-        balances = account.balances.map(balance => ({
-          balance: balance.balance,
-          assetType: balance.asset_type,
-          assetCode: balance.asset_type === 'native' ? 'XLM' : (balance as unknown as Record<string, unknown>).asset_code as string,
-          assetIssuer: balance.asset_type === 'native' ? undefined : (balance as unknown as Record<string, unknown>).asset_issuer as string,
-        }));
+        balances = await this.getAllAssets(wallet.publicKey, network);
       } catch (error) {
         // Account doesn't exist yet or network error
         console.warn('Failed to load Stellar account:', error);
