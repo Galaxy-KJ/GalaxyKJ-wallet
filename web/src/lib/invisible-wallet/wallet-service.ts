@@ -483,8 +483,9 @@ export class InvisibleWalletService {
         throw new Error(InvisibleWalletError.UNAUTHORIZED_ORIGIN);
       }
 
-      // Verify email
-      if (wallet.email !== request.email) {
+      // Verify email (supports hashed email storage)
+      const emailMatches = await this.isEmailMatch(wallet, request.email);
+      if (!emailMatches) {
         throw new Error(InvisibleWalletError.WALLET_NOT_FOUND);
       }
 
@@ -866,6 +867,19 @@ export class InvisibleWalletService {
     }, passphrase)
   }
 
+  private async isEmailMatch(wallet: InvisibleWallet, email: string): Promise<boolean> {
+    if (wallet.email && wallet.email === email) {
+      return true;
+    }
+
+    if (wallet.emailHash) {
+      const candidateHash = await CryptoService.hashString(email);
+      return wallet.emailHash === candidateHash;
+    }
+
+    return false;
+  }
+
   /**
    * Invokes a Soroban smart contract method
    */
@@ -881,7 +895,8 @@ export class InvisibleWalletService {
         throw new Error(InvisibleWalletError.UNAUTHORIZED_ORIGIN);
       }
 
-      if (wallet.email !== request.email) {
+      const emailMatches = await this.isEmailMatch(wallet, request.email);
+      if (!emailMatches) {
         throw new Error(InvisibleWalletError.WALLET_NOT_FOUND);
       }
 
